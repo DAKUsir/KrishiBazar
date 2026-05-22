@@ -52,6 +52,8 @@ const analyzeScan = async (req, res) => {
         confidence: result.confidence,
         severity: result.severity,
         aiAnalysis: result.aiAnalysis,
+        weatherAtTime: result.weatherAtTime,
+        model: result.model,
         status: 'completed',
       },
       { new: true }

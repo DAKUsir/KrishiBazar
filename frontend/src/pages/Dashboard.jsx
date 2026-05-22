@@ -107,6 +107,19 @@ function DiseaseResult({ scan }) {
   if (!scan) return null
 
   const severityColor = getSeverityColor(scan.severity)
+  const isHealthy = scan.severity === 'None' || scan.severity === 'Healthy'
+
+  const severityBg = isHealthy
+    ? 'bg-green-50'
+    : scan.severity === 'Low' ? 'bg-green-50'
+    : scan.severity === 'Medium' ? 'bg-yellow-50'
+    : 'bg-red-50'
+
+  const severityText = isHealthy
+    ? 'text-green-700'
+    : scan.severity === 'Low' ? 'text-green-700'
+    : scan.severity === 'Medium' ? 'text-yellow-700'
+    : 'text-red-700'
 
   return (
     <motion.div
@@ -115,20 +128,27 @@ function DiseaseResult({ scan }) {
       className="dashboard-card p-6"
     >
       <div className="flex items-center gap-3 mb-5">
-        <div className="w-10 h-10 bg-red-100 rounded-xl flex items-center justify-center">
-          <AlertTriangle className="w-5 h-5 text-red-500" />
+        <div className={`w-10 h-10 ${isHealthy ? 'bg-green-100' : 'bg-red-100'} rounded-xl flex items-center justify-center`}>
+          {isHealthy
+            ? <CheckCircle2 className="w-5 h-5 text-green-500" />
+            : <AlertTriangle className="w-5 h-5 text-red-500" />}
         </div>
-        <h3 className="font-bold text-gray-900 font-display">Detection Result</h3>
+        <div>
+          <h3 className="font-bold text-gray-900 font-display">Detection Result</h3>
+          {scan.model && (
+            <p className="text-xs text-gray-400 mt-0.5">🤖 HuggingFace · MobileNetV2</p>
+          )}
+        </div>
       </div>
 
       <div className="flex gap-3 mb-4">
-        <img src={`/uploads/${scan.imageUrl?.split('/').pop()}`} alt="scan" className="w-20 h-20 rounded-xl object-cover border border-gray-100" />
+        <img src={`http://localhost:5000${scan.imageUrl}`} alt="scan" className="w-20 h-20 rounded-xl object-cover border border-gray-100" />
         <div className="flex-1">
           <h4 className="font-bold text-gray-900 text-lg">{scan.diseaseName}</h4>
           <p className="text-gray-500 text-sm mb-2">Detected in {scan.cropName}</p>
           <span className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold border ${severityColor}`}>
             <Shield className="w-3 h-3" />
-            {scan.severity} Severity
+            {isHealthy ? '✅ Healthy Plant' : `${scan.severity} Severity`}
           </span>
         </div>
       </div>
@@ -137,13 +157,16 @@ function DiseaseResult({ scan }) {
         <div className="bg-blue-50 rounded-xl p-3 text-center">
           <div className="text-2xl font-bold text-blue-700">{scan.confidence?.toFixed(1)}%</div>
           <div className="text-xs text-blue-500 font-medium">AI Confidence</div>
-        </div>
-        <div className={`rounded-xl p-3 text-center ${scan.severity === 'Low' ? 'bg-green-50' : scan.severity === 'Medium' ? 'bg-yellow-50' : 'bg-red-50'}`}>
-          <div className={`text-2xl font-bold ${scan.severity === 'Low' ? 'text-green-700' : scan.severity === 'Medium' ? 'text-yellow-700' : 'text-red-700'}`}>
-            {scan.severity}
+          <div className="w-full bg-blue-200 rounded-full h-1.5 mt-2">
+            <div className="bg-blue-500 h-1.5 rounded-full" style={{ width: `${scan.confidence}%` }} />
           </div>
-          <div className={`text-xs font-medium ${scan.severity === 'Low' ? 'text-green-500' : scan.severity === 'Medium' ? 'text-yellow-500' : 'text-red-500'}`}>
-            Severity Level
+        </div>
+        <div className={`rounded-xl p-3 text-center ${severityBg}`}>
+          <div className={`text-2xl font-bold ${severityText}`}>
+            {isHealthy ? '✓' : scan.severity}
+          </div>
+          <div className={`text-xs font-medium ${severityText}`}>
+            {isHealthy ? 'No Disease Found' : 'Severity Level'}
           </div>
         </div>
       </div>

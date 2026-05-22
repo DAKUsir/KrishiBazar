@@ -6,7 +6,7 @@ const scanSchema = new mongoose.Schema({
   cropName: String,
   diseaseName: String,
   confidence: Number,
-  severity: { type: String, enum: ['Low', 'Medium', 'High', 'Critical'] },
+  severity: { type: String, enum: ['None', 'Healthy', 'Low', 'Medium', 'High', 'Critical'] },
   aiAnalysis: {
     explanation: String,
     causes: [String],
@@ -23,6 +23,7 @@ const scanSchema = new mongoose.Schema({
     humidity: Number,
     rainfall: Number,
   },
+  model: { type: String, default: 'linkanjarad/mobilenet_v2_1.0_224-plant-disease-identification' },
   status: { type: String, enum: ['processing', 'completed', 'failed'], default: 'processing' },
 }, { timestamps: true });
 

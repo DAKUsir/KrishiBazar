@@ -1,6 +1,6 @@
 const ChatHistory = require('../models/ChatHistory');
 const aiService = require('../services/aiService');
-const { v4: uuidv4 } = require('crypto');
+const uuidv4 = () => Math.random().toString(36).substring(2) + Date.now().toString(36);
 
 // @route  POST /api/chat
 const chat = async (req, res) => {
