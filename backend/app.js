@@ -15,6 +15,7 @@ const marketplaceRoutes = require('./routes/marketplace');
 const chatRoutes = require('./routes/chat');
 const cropRoutes = require('./routes/crops');
 const mandiRoutes = require('./routes/mandi');
+const aiRoutes = require('./routes/aiRoutes');
 const errorHandler = require('./middleware/errorHandler');
 
 const app = express();
@@ -56,6 +57,7 @@ app.use('/api/market', marketplaceRoutes);
 app.use('/api/chat', chatRoutes);
 app.use('/api/crops', cropRoutes);
 app.use('/api/mandi', mandiRoutes);
+app.use('/api/ai', aiRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {

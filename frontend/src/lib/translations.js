@@ -87,6 +87,14 @@ export const translations = {
     'Predicted Yield': 'Predicted Yield',
     'Total Production': 'Total Production',
     'Market Valuation': 'Market Valuation',
+    'Krishi AI Smart Copilot': 'Krishi AI Smart Copilot',
+    'Run 1-Click Farm Audit & Optimization': 'Run 1-Click Farm Audit & Optimization',
+    '1-Click Auto-Draft Sale Listing': '1-Click Auto-Draft Sale Listing',
+    'Auto-Schedule Prevention Tasks': 'Auto-Schedule Prevention Tasks',
+    'Active Copilot Tasks': 'Active Copilot Tasks',
+    'Marketplace Listing Published!': 'Marketplace Listing Published!',
+    'Prevention Tasks Scheduled!': 'Prevention Tasks Scheduled!',
+    'Farm Health Score': 'Farm Health Score'
   },
   Hindi: {
     // Navigation & Sidebar
@@ -174,6 +182,14 @@ export const translations = {
     'Predicted Yield': 'अनुमानित उपज',
     'Total Production': 'कुल उत्पादन',
     'Market Valuation': 'बाजार मूल्यांकन',
+    'Krishi AI Smart Copilot': 'कृषि एआई स्मार्ट कोपायलट',
+    'Run 1-Click Farm Audit & Optimization': '1-क्लिक फार्म ऑडिट और अनुकूलन चलाएं',
+    '1-Click Auto-Draft Sale Listing': '1-क्लिक ऑटो-ड्राफ्ट बिक्री सूची',
+    'Auto-Schedule Prevention Tasks': 'ऑटो-शेड्यूल रोकथाम कार्य',
+    'Active Copilot Tasks': 'सक्रिय कोपायलट कार्य',
+    'Marketplace Listing Published!': 'बाज़ार में बिक्री सूची प्रकाशित!',
+    'Prevention Tasks Scheduled!': 'रोकथाम कार्य निर्धारित किए गए!',
+    'Farm Health Score': 'खेत स्वास्थ्य स्कोर'
   },
   Kannada: {
     // Navigation & Sidebar
@@ -261,6 +277,14 @@ export const translations = {
     'Predicted Yield': 'ಅಂದಾಜು ಇಳುವರಿ',
     'Total Production': 'ಒಟ್ಟು ಉತ್ಪಾದನೆ',
     'Market Valuation': 'ಮಾರುಕಟ್ಟೆ ಮೌಲ್ಯಮಾಪನ',
+    'Krishi AI Smart Copilot': 'ಕೃಷಿ ಎಐ ಸ್ಮಾರ್ಟ್ ಕೊಪೈಲಟ್',
+    'Run 1-Click Farm Audit & Optimization': '1-ಕ್ಲಿಕ್ ಫಾರ್ಮ್ ಆಡಿಟ್ ಚಾಲನೆ ಮಾಡಿ',
+    '1-Click Auto-Draft Sale Listing': '1-ಕ್ಲಿಕ್ ಸ್ವಯಂ-ಕರಡು ಮಾರಾಟ ಪಟ್ಟಿ',
+    'Auto-Schedule Prevention Tasks': 'ಸ್ವಯಂ-ವೇಳಾಪಟ್ಟಿ ತಡೆಗಟ್ಟುವಿಕೆ ಕಾರ್ಯಗಳು',
+    'Active Copilot Tasks': 'ಸಕ್ರಿಯ ಕೊಪೈಲಟ್ ಕಾರ್ಯಗಳು',
+    'Marketplace Listing Published!': 'ಮಾರುಕಟ್ಟೆ ಪಟ್ಟಿ ಪ್ರಕಟಿಸಲಾಗಿದೆ!',
+    'Prevention Tasks Scheduled!': 'ತಡೆಗಟ್ಟುವಿಕೆ ಕಾರ್ಯಗಳನ್ನು ನಿಗದಿಪಡಿಸಲಾಗಿದೆ!',
+    'Farm Health Score': 'ಫಾರ್ಮ್ ಆರೋಗ್ಯ ಸ್ಕೋರ್'
   },
   Tamil: {
     // Navigation & Sidebar
@@ -348,6 +372,14 @@ export const translations = {
     'Predicted Yield': 'கணிக்கப்பட்ட மகசூல்',
     'Total Production': 'மொத்த உற்பத்தி',
     'Market Valuation': 'சந்தை மதிப்பு',
+    'Krishi AI Smart Copilot': 'கிருஷி AI ஸ்மார்ட் கோபைலட்',
+    'Run 1-Click Farm Audit & Optimization': '1-கிளிக் பண்ணை தணிக்கையை இயக்கு',
+    '1-Click Auto-Draft Sale Listing': '1-கிளிக் தானியங்கி விற்பனைப் பட்டியல்',
+    'Auto-Schedule Prevention Tasks': 'தானியங்கி தடுப்புப் பணிகள்',
+    'Active Copilot Tasks': 'செயலில் உள்ள கோபைலட் பணிகள்',
+    'Marketplace Listing Published!': 'சந்தைப் பட்டியல் வெளியிடப்பட்டது!',
+    'Prevention Tasks Scheduled!': 'தடுப்புப் பணிகள் திட்டமிடப்பட்டன!',
+    'Farm Health Score': 'பண்ணை சுகாதார மதிப்பெண்'
   },
   Telugu: {
     // Navigation & Sidebar
@@ -435,6 +467,14 @@ export const translations = {
     'Predicted Yield': 'అంచనా వేసిన దిగుబడి',
     'Total Production': 'మొత్తం ఉత్పత్తి',
     'Market Valuation': 'మార్కెట్ విలువ',
+    'Krishi AI Smart Copilot': 'కృషి AI స్మార్ట్ కోపైలట్',
+    'Run 1-Click Farm Audit & Optimization': '1-క్లిక్ ఫార్మ్ ఆడిట్ ప్రారంభించు',
+    '1-Click Auto-Draft Sale Listing': '1-క్లిక్ ఆటో-డ్రాఫ్ట్ అమ్మకం జాబితా',
+    'Auto-Schedule Prevention Tasks': 'ఆటో-షెడ్యూల్ నివారణ పనులు',
+    'Active Copilot Tasks': 'సక్రియ కోపైలట్ పనులు',
+    'Marketplace Listing Published!': 'మార్కెట్ జాబితా ప్రచురించబడింది!',
+    'Prevention Tasks Scheduled!': 'నివారణ పనులు షెడ్యూల్ చేయబడ్డాయి!',
+    'Farm Health Score': 'ఫార్మ్ ఆరోగ్య స్కోరు'
   }
 }
 

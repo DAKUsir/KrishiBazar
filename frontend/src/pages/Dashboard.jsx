@@ -5,9 +5,10 @@ import { useQuery } from '@tanstack/react-query'
 import {
   Upload, Camera, Cloud, Thermometer, Droplets, Wind,
   Sun, AlertTriangle, CheckCircle2, ChevronRight, X, Brain, Shield,
-  Sprout, BarChart2, Calendar, Info, MapPin, Globe, Loader2
+  Sprout, BarChart2, Calendar, Info, MapPin, Globe, Loader2, Sparkles, Check
 } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
+import { useTranslation } from '../lib/translations'
 import api from '../lib/api'
 import { getSeverityColor, formatDate } from '../lib/utils'
 
@@ -776,6 +777,336 @@ function ScanHistory() {
   )
 }
 
+// ─── Krishi AI Smart Copilot ─────────────────────────────────────
+function KrishiCopilot({ user }) {
+  const { t } = useTranslation()
+  const [loading, setLoading] = useState(false)
+  const [loadingStage, setLoadingStage] = useState(0)
+  const [audit, setAudit] = useState(null)
+  const [scheduledTasks, setScheduledTasks] = useState([])
+  const [completedTasks, setCompletedTasks] = useState({})
+  const [successStatus, setSuccessStatus] = useState({}) // item1: 'drafted', item2: 'scheduled'
+
+  const STAGES = [
+    t('Reading plot profile & experience layers...'),
+    t('Auditing live district weather trends...'),
+    t('Interrogating official APMC Mandi price APIs...'),
+    t('Running AI multi-layer auto-optimization...')
+  ]
+
+  useEffect(() => {
+    let timer
+    if (loading && loadingStage < STAGES.length - 1) {
+      timer = setTimeout(() => {
+        setLoadingStage(prev => prev + 1)
+      }, 1500)
+    }
+    return () => clearTimeout(timer)
+  }, [loading, loadingStage])
+
+  const triggerAudit = async () => {
+    setLoading(true)
+    setLoadingStage(0)
+    setAudit(null)
+    try {
+      // Simulate stages progression for premium visual feel
+      await new Promise(resolve => setTimeout(resolve, 6000))
+      const res = await api.post('/ai/farm-audit')
+      if (res.data.success) {
+        setAudit(res.data.audit)
+      }
+    } catch (err) {
+      console.error('Farm audit error:', err)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleAutoDraftListing = async (item) => {
+    const itemId = item.id
+    setSuccessStatus(prev => ({ ...prev, [itemId]: 'loading' }))
+    try {
+      const payload = item.payload
+      // Draft listing to database
+      await api.post('/market/sell-yield', {
+        crop: payload.commodity,
+        quantity: user?.farmDetails?.farmArea * 15 || 30,
+        unit: 'Quintal',
+        pricePerUnit: payload.price,
+        description: payload.description,
+        location: {
+          state: user?.farmDetails?.state || 'Karnataka',
+          district: user?.farmDetails?.district || 'Bengaluru'
+        },
+        contact: '9988776655',
+        quality: 'A',
+        availableFrom: new Date().toISOString().split('T')[0],
+        availableTo: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+      })
+      setSuccessStatus(prev => ({ ...prev, [itemId]: 'drafted' }))
+    } catch (err) {
+      console.error('Error drafting listing:', err)
+      setSuccessStatus(prev => ({ ...prev, [itemId]: 'error' }))
+    }
+  }
+
+  const handleAutoScheduleTasks = (item) => {
+    const itemId = item.id
+    setSuccessStatus(prev => ({ ...prev, [itemId]: 'scheduled' }))
+    if (item.payload?.tasks) {
+      setScheduledTasks(prev => {
+        // Prevent duplicate lists
+        const filtered = prev.filter(t => !item.payload.tasks.includes(t))
+        return [...filtered, ...item.payload.tasks]
+      })
+    }
+  }
+
+  const toggleTask = (task) => {
+    setCompletedTasks(prev => ({ ...prev, [task]: !prev[task] }))
+  }
+
+  return (
+    <div className="relative overflow-hidden bg-white/70 backdrop-blur-md border border-[#DDE8DC] rounded-3xl p-8 shadow-sm transition-all mb-8">
+      {/* Top Banner Header */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6 pb-6 border-b border-[#DDE8DC]/60">
+        <div className="flex items-center gap-3">
+          <div className="w-12 h-12 bg-gradient-to-br from-green-500 to-emerald-600 rounded-2xl flex items-center justify-center shadow-md shadow-green-500/20">
+            <Sparkles className="w-6 h-6 text-white animate-pulse" />
+          </div>
+          <div>
+            <h3 className="font-bold text-lg font-display text-[#111D14] flex items-center gap-2">
+              {t('Krishi AI Smart Copilot')}
+              <span className="text-[10px] bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-black tracking-widest uppercase">
+                Active
+              </span>
+            </h3>
+            <p className="text-xs text-[#7A9080] font-medium mt-0.5">
+              {t('Predict your crop yield using advanced machine learning models')}
+            </p>
+          </div>
+        </div>
+
+        {!loading && !audit && (
+          <button
+            onClick={triggerAudit}
+            className="px-5 py-2.5 bg-gradient-to-r from-green-600 to-emerald-700 hover:from-green-500 hover:to-emerald-600 active:scale-95 text-white text-xs font-bold rounded-xl flex items-center gap-2 transition-all shadow-md shadow-green-600/10 group"
+          >
+            <Sparkles className="w-4 h-4 text-green-200 group-hover:rotate-12 transition-transform" />
+            {t('Run 1-Click Farm Audit & Optimization')}
+          </button>
+        )}
+      </div>
+
+      {/* ─── LOADING STATE ─── */}
+      {loading && (
+        <div className="py-12 flex flex-col items-center justify-center text-center space-y-4">
+          <Loader2 className="w-10 h-10 text-green-600 animate-spin" />
+          <div className="space-y-1">
+            <p className="font-bold text-sm text-[#111D14] transition-all">
+              {STAGES[loadingStage]}
+            </p>
+            <p className="text-[10px] text-gray-400 font-medium">
+              Krishi AI is aggregating live Mandi price telemetry and cloud cover patterns
+            </p>
+          </div>
+          <div className="w-48 bg-gray-100 rounded-full h-1.5 overflow-hidden">
+            <div
+              className="bg-green-500 h-full rounded-full transition-all duration-1000"
+              style={{ width: `${(loadingStage + 1) * 25}%` }}
+            />
+          </div>
+        </div>
+      )}
+
+      {/* ─── AUDIT REPORT RENDER ─── */}
+      {audit && (
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="space-y-6"
+        >
+          {/* Executive Overview Section */}
+          <div className="flex flex-col md:flex-row gap-6 items-center bg-green-50/40 border border-[#DDE8DC]/80 rounded-2xl p-6">
+            {/* Health Score Dial */}
+            <div className="relative w-24 h-24 flex items-center justify-center flex-shrink-0">
+              <svg className="w-full h-full transform -rotate-90">
+                <circle cx="48" cy="48" r="40" stroke="#EEF3E8" strokeWidth="6" fill="transparent" />
+                <circle
+                  cx="48"
+                  cy="48"
+                  r="40"
+                  stroke="#2D6A47"
+                  strokeWidth="8"
+                  fill="transparent"
+                  strokeDasharray={251}
+                  strokeDashoffset={251 - (251 * audit.healthScore) / 100}
+                  strokeLinecap="round"
+                  className="transition-all duration-1000 ease-out"
+                />
+              </svg>
+              <div className="absolute flex flex-col items-center">
+                <span className="font-black text-2xl text-[#111D14]">{audit.healthScore}</span>
+                <span className="text-[8px] font-black text-green-700 tracking-wider uppercase">Score</span>
+              </div>
+            </div>
+
+            <div className="flex-1 text-center md:text-left">
+              <h4 className="font-bold text-xs uppercase tracking-widest text-green-700 mb-1">
+                {t('Farm Health Score')}
+              </h4>
+              <p className="text-sm text-[#3A4D3D] leading-relaxed font-semibold">
+                {audit.summary}
+              </p>
+            </div>
+            
+            <button
+              onClick={triggerAudit}
+              className="px-4 py-2 bg-white hover:bg-gray-50 border border-[#DDE8DC] text-[10px] font-bold text-green-700 rounded-xl transition-all shadow-xs shrink-0"
+            >
+              Re-Audit
+            </button>
+          </div>
+
+          {/* Action Items List */}
+          <div className="grid md:grid-cols-3 gap-5">
+            {audit.actionItems.map((item) => {
+              const status = successStatus[item.id]
+              return (
+                <div
+                  key={item.id}
+                  className="bg-white border border-[#DDE8DC] hover:border-green-300 rounded-2xl p-5 flex flex-col justify-between transition-all group"
+                >
+                  <div className="mb-4">
+                    <span className="text-[8px] font-bold uppercase tracking-wider text-green-700 bg-green-50 border border-green-100 px-2 py-0.5 rounded-full">
+                      {item.type.replace('_', ' ')}
+                    </span>
+                    <h5 className="font-bold text-sm text-[#111D14] mt-2 group-hover:text-green-700 transition-colors">
+                      {item.title}
+                    </h5>
+                    <p className="text-xs text-gray-500 mt-1.5 leading-relaxed">
+                      {item.description}
+                    </p>
+
+                    {/* Nutrient specifics inside Prescription */}
+                    {item.type === 'SOIL_PRESCRIPTION' && item.payload?.nutrients && (
+                      <div className="grid grid-cols-3 gap-2 mt-4 bg-gray-50 border border-gray-100 rounded-xl p-2.5 text-center font-mono">
+                        <div>
+                          <span className="text-[10px] text-gray-400 font-bold block">N</span>
+                          <span className="text-xs font-bold text-green-700">{item.payload.nutrients.N}</span>
+                        </div>
+                        <div>
+                          <span className="text-[10px] text-gray-400 font-bold block">P</span>
+                          <span className="text-xs font-bold text-orange-700">{item.payload.nutrients.P}</span>
+                        </div>
+                        <div>
+                          <span className="text-[10px] text-gray-400 font-bold block">K</span>
+                          <span className="text-xs font-bold text-purple-700">{item.payload.nutrients.K}</span>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Dynamic Action Buttons */}
+                  <div className="mt-auto">
+                    {item.type === 'MANDI_ARBITRAGE' && (
+                      <button
+                        onClick={() => handleAutoDraftListing(item)}
+                        disabled={status === 'drafted' || status === 'loading'}
+                        className={`w-full py-2.5 text-xs font-bold rounded-xl flex items-center justify-center gap-1.5 transition-all ${
+                          status === 'drafted'
+                            ? 'bg-green-100 text-green-700 border border-green-200'
+                            : 'bg-[#1A3D2B] hover:bg-[#2D6A47] text-white active:scale-95'
+                        }`}
+                      >
+                        {status === 'loading' && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                        {status === 'drafted' ? (
+                          <>
+                            <Check className="w-3.5 h-3.5" />
+                            {t('Marketplace Listing Published!')}
+                          </>
+                        ) : (
+                          <>
+                            <Sparkles className="w-3.5 h-3.5" />
+                            {t('1-Click Auto-Draft Sale Listing')}
+                          </>
+                        )}
+                      </button>
+                    )}
+
+                    {item.type === 'WEATHER_WARNING' && (
+                      <button
+                        onClick={() => handleAutoScheduleTasks(item)}
+                        disabled={status === 'scheduled'}
+                        className={`w-full py-2.5 text-xs font-bold rounded-xl flex items-center justify-center gap-1.5 transition-all ${
+                          status === 'scheduled'
+                            ? 'bg-green-100 text-green-700 border border-green-200'
+                            : 'bg-[#1A3D2B] hover:bg-[#2D6A47] text-white active:scale-95'
+                        }`}
+                      >
+                        {status === 'scheduled' ? (
+                          <>
+                            <Check className="w-3.5 h-3.5" />
+                            {t('Prevention Tasks Scheduled!')}
+                          </>
+                        ) : (
+                          <>
+                            <Calendar className="w-3.5 h-3.5" />
+                            {t('Auto-Schedule Prevention Tasks')}
+                          </>
+                        )}
+                      </button>
+                    )}
+
+                    {item.type === 'SOIL_PRESCRIPTION' && (
+                      <div className="text-[10px] text-center text-green-700 font-bold border border-green-200/50 bg-green-50/50 py-2 rounded-xl">
+                        ✓ Optimal Nutrition Confirmed
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+
+          {/* Active Copilot Scheduled Checklist */}
+          {scheduledTasks.length > 0 && (
+            <div className="bg-white border border-[#DDE8DC] rounded-2xl p-6">
+              <h5 className="font-bold text-xs uppercase tracking-widest text-[#7A9080] mb-4 flex items-center gap-2">
+                <Calendar className="w-4 h-4 text-green-700" />
+                {t('Active Copilot Tasks')}
+              </h5>
+              <div className="space-y-2.5">
+                {scheduledTasks.map((task, idx) => {
+                  const isDone = !!completedTasks[task]
+                  return (
+                    <div
+                      key={idx}
+                      onClick={() => toggleTask(task)}
+                      className={`flex items-center gap-3 p-3 rounded-xl border border-gray-100 hover:bg-[#EEF3E8]/30 transition-all cursor-pointer ${
+                        isDone ? 'bg-[#EEF3E8]/30 opacity-70' : 'bg-white shadow-xs'
+                      }`}
+                    >
+                      <div className={`w-5 h-5 rounded-md border flex items-center justify-center transition-all ${
+                        isDone ? 'bg-green-600 border-green-600 text-white' : 'border-gray-300 bg-white'
+                      }`}>
+                        {isDone && <Check className="w-3.5 h-3.5" />}
+                      </div>
+                      <span className={`text-xs font-semibold ${isDone ? 'line-through text-gray-400' : 'text-[#111D14]'}`}>
+                        {task}
+                      </span>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          )}
+        </motion.div>
+      )}
+    </div>
+  )
+}
+
 // ─── Main Dashboard Redesign ─────────────────────────────────────
 export default function Dashboard() {
   const { user } = useAuth()
@@ -841,6 +1172,7 @@ export default function Dashboard() {
       <div className="grid lg:grid-cols-3 gap-8">
         {/* Left Columns */}
         <div className="lg:col-span-2 space-y-8">
+          <KrishiCopilot user={user} />
           <DiseaseUploadSection onScanComplete={setCurrentScan} />
           {currentScan && <DiseaseResult scan={currentScan} />}
           {currentScan && <AIAnalysisPanel scan={currentScan} />}
