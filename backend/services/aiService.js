@@ -47,16 +47,17 @@ const aiService = {
     }
   },
 
-  async generateCommunityPost({ scan, user, weather }) {
+  async generateCommunityPost({ scan, user, weather, farmerNote }) {
     try {
       const response = await axios.post(`${AI_SERVICE_URL}/community/generate-post`, {
-        scan, user, weather,
+        scan, user, weather, farmerNote,
       }, { timeout: 20000 });
       return response.data;
     } catch (error) {
+      const desc = `My ${scan.cropName || 'crop'} has been showing symptoms.${farmerNote ? ' Note: ' + farmerNote : ''} AI detected ${scan.diseaseName || 'disease'} with ${scan.confidence?.toFixed(1) || '80'}% confidence (${scan.severity || 'Medium'} severity). Located in ${user.farmDetails?.state || 'India'}. Looking for advice from experienced farmers. Has anyone dealt with this before?`;
       return {
         title: `${scan.cropName || 'Crop'} showing ${scan.diseaseName || 'disease'} symptoms`,
-        description: `My ${scan.cropName || 'crop'} has been showing symptoms and AI detected ${scan.diseaseName || 'disease'} with ${scan.confidence?.toFixed(1) || '80'}% confidence (${scan.severity || 'Medium'} severity). Located in ${user.farmDetails?.state || 'India'}. Looking for advice from experienced farmers. Has anyone dealt with this before?`,
+        description: desc,
         cropType: scan.cropName,
         disease: scan.diseaseName,
         state: user.farmDetails?.state,

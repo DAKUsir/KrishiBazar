@@ -65,6 +65,47 @@ const generateAIPost = async (req, res) => {
   }
 };
 
+// @route  POST /api/community/create-automated-post
+const createAutomatedAIPost = async (req, res) => {
+  try {
+    const { scanId, farmerNote, weatherData } = req.body;
+    const Scan = require('../models/Scan');
+    const scan = await Scan.findById(scanId);
+
+    if (!scan) return res.status(404).json({ success: false, message: 'Scan not found' });
+
+    // Generate custom title and description via AI service incorporating farmer's observations
+    const aiPost = await aiService.generateCommunityPost({
+      scan,
+      user: req.user,
+      weather: weatherData,
+      farmerNote,
+    });
+
+    // Create community post with linked scan image
+    const post = await CommunityPost.create({
+      author: req.user._id,
+      title: aiPost.title,
+      description: aiPost.description,
+      cropType: aiPost.cropType || scan.cropName,
+      state: aiPost.state || req.user.farmDetails?.state,
+      district: aiPost.district || req.user.farmDetails?.district,
+      disease: aiPost.disease || scan.diseaseName,
+      language: aiPost.language || req.user.language || 'English',
+      tags: aiPost.tags || [scan.cropName, scan.diseaseName, 'disease', 'help-needed'],
+      isAIGenerated: true,
+      linkedScan: scanId,
+      images: scan.imageUrl ? [scan.imageUrl] : [],
+    });
+
+    await post.populate('author', 'name avatar farmDetails');
+
+    res.status(201).json({ success: true, post });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
 // @route  POST /api/community/posts/:id/like
 const likePost = async (req, res) => {
   try {
@@ -104,4 +145,4 @@ const addComment = async (req, res) => {
   }
 };
 
-module.exports = { getPosts, createPost, generateAIPost, likePost, addComment };
+module.exports = { getPosts, createPost, generateAIPost, createAutomatedAIPost, likePost, addComment };

@@ -13,12 +13,14 @@ class GeneratePostRequest(BaseModel):
     scan: Optional[Dict[str, Any]] = {}
     user: Optional[Dict[str, Any]] = {}
     weather: Optional[Dict[str, Any]] = {}
+    farmerNote: Optional[str] = ""
 
 @router.post("/generate-post")
 async def generate_community_post(request: GeneratePostRequest):
     scan = request.scan or {}
     user = request.user or {}
     weather = request.weather or {}
+    farmer_note = request.farmerNote or ""
 
     crop_name = scan.get('cropName', 'crop')
     disease_name = scan.get('diseaseName', 'disease')
@@ -35,8 +37,13 @@ Disease: {disease_name}
 Confidence: {confidence:.1f}%
 Severity: {severity}
 Location: {district}, {state}
+Farmer's Observations/Comment: "{farmer_note}"
 
-Return JSON with: title, description (2-3 sentences, farmer-friendly), tags (array)"""
+Please write the post in a supportive, farmer-friendly community tone. Blend the AI diagnosis details (crop, disease, confidence, severity) and the farmer's personal observations naturally.
+Return JSON with:
+- "title": An engaging, descriptive forum title (e.g. "Early Blight spotted on my tomatoes in APMC - Need help!")
+- "description": A detailed, friendly post description (3-4 sentences) outlining the problem, crop, AI diagnosis, farmer observations, and asking the community for advice or experiences.
+- "tags": An array of 4-6 relevant tag strings (e.g. ["tomato", "early-blight", "disease", "help-needed"])"""
 
             response = client.chat.completions.create(
                 model="llama-3.1-8b-instant",
@@ -62,9 +69,14 @@ Return JSON with: title, description (2-3 sentences, farmer-friendly), tags (arr
             print(f"Community AI error: {e}")
 
     # Mock response
+    desc = f"My {crop_name} crop is showing symptoms."
+    if farmer_note:
+        desc += f" Note: {farmer_note}."
+    desc += f" Our AI system detected {disease_name} with {confidence:.1f}% confidence at {severity.lower()} severity level. I'm located in {district + ', ' if district else ''}{state}. Has anyone in the community dealt with this before? What treatment worked best for you?"
+
     return {
         "title": f"{crop_name} leaves showing {disease_name} symptoms - Need expert advice",
-        "description": f"My {crop_name} crop has been showing concerning symptoms. Our AI system detected {disease_name} with {confidence:.1f}% confidence at {severity.lower()} severity level. I'm located in {district + ', ' if district else ''}{state}. Has anyone in the community dealt with this before? What treatment worked best for you?",
+        "description": desc,
         "cropType": crop_name,
         "disease": disease_name,
         "state": state,
