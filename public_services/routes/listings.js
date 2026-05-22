@@ -2,7 +2,10 @@ import express from 'express';
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
-import YieldListing from '../models/YieldListing.js';
+import mongoose from 'mongoose';
+import Listing from '../models/Listing.js'; // maps to YieldListing model (yieldlistings collection)
+import User from '../models/User.js';       // maps to User model (users collection)
+import Scan from '../models/Scan.js';       // maps to Scan model (scans collection)
 import Lead from '../models/Lead.js';
 import twilio from 'twilio';
 
@@ -39,193 +42,278 @@ function getDistance(lat1, lon1, lat2, lon2) {
   return R * c; // distance in km
 }
 
-// Seed mock listings into the shared collection
+// Helper to format YieldListing document to match the React frontend API expectation
+const formatListingForFrontend = async (yieldDoc) => {
+  const plainDoc = yieldDoc.toObject();
+  
+  // Calculate relative stats
+  const sellerId = yieldDoc.seller ? yieldDoc.seller._id : null;
+  let scanCount = 0;
+  if (sellerId) {
+    scanCount = await Scan.countDocuments({ user: sellerId });
+  }
+  const isVerified = scanCount >= 5;
+
+  // Shelf life calculation from dates (in days)
+  const fromDate = new Date(yieldDoc.availableFrom || Date.now());
+  const toDate = new Date(yieldDoc.availableTo || Date.now() + 5 * 24 * 60 * 60 * 1000);
+  const shelfLifeDays = Math.max(1, Math.round((toDate - fromDate) / (1000 * 60 * 60 * 24)));
+
+  return {
+    _id: plainDoc._id,
+    crop: plainDoc.crop,
+    quantity: plainDoc.quantity,
+    price: plainDoc.pricePerUnit,
+    location: {
+      village: plainDoc.location?.address || 'Local Village',
+      district: plainDoc.location?.district || 'Unknown District',
+      coordinates: plainDoc.location?.coordinates || { lat: 12.9716, lng: 77.5946 }
+    },
+    farmer: {
+      name: plainDoc.seller?.name || plainDoc.contact?.phone || 'Farmer',
+      phone: plainDoc.contact?.phone || '+910000000000',
+      isVerified: isVerified
+    },
+    image: plainDoc.images && plainDoc.images.length > 0 ? plainDoc.images[0] : '',
+    harvestDate: plainDoc.availableFrom || plainDoc.createdAt,
+    shelfLife: shelfLifeDays,
+    notes: plainDoc.description || '',
+    reports: plainDoc.reports || 0,
+    status: plainDoc.status || 'active',
+    createdAt: plainDoc.createdAt
+  };
+};
+
+// Seed mock listings in collections
 export const seedListings = async () => {
   try {
-    const count = await YieldListing.countDocuments();
-    if (count === 0) {
+    const userCount = await User.countDocuments();
+    if (userCount === 0) {
+      console.log('Database empty! Seeding users, scans, and yield listings...');
+      
+      const seedFarmers = [
+        {
+          name: 'Ramesh Gowda',
+          phone: '+919876543210',
+          googleId: 'google_ramesh',
+          email: 'ramesh.gowda@farmshield.ai',
+          isOnboarded: true,
+          farmDetails: { state: 'Karnataka', district: 'Kolar', farmArea: 4, soilType: 'Loam' }
+        },
+        {
+          name: 'Siddappa K.',
+          phone: '+918765432109',
+          googleId: 'google_siddappa',
+          email: 'siddappa@farmshield.ai',
+          isOnboarded: true,
+          farmDetails: { state: 'Karnataka', district: 'Mysore', farmArea: 5, soilType: 'Clay' }
+        },
+        {
+          name: 'Manjunatha swamy',
+          phone: '+917654321098',
+          googleId: 'google_manju',
+          email: 'manju@farmshield.ai',
+          isOnboarded: true,
+          farmDetails: { state: 'Karnataka', district: 'Mandya', farmArea: 2, soilType: 'Silt' }
+        },
+        {
+          name: 'Basavaraj Patil',
+          phone: '+916543210987',
+          googleId: 'google_basava',
+          email: 'basavaraj@farmshield.ai',
+          isOnboarded: true,
+          farmDetails: { state: 'Karnataka', district: 'Belagavi', farmArea: 8, soilType: 'Mixed' }
+        },
+        {
+          name: 'Anjinappa Gowda',
+          phone: '+915432109876',
+          googleId: 'google_anjinappa',
+          email: 'anjinappa@farmshield.ai',
+          isOnboarded: true,
+          farmDetails: { state: 'Karnataka', district: 'Chitradurga', farmArea: 3, soilType: 'Sandy' }
+        },
+        {
+          name: 'Mallikarjun Patil',
+          phone: '+914321098765',
+          googleId: 'google_mallika',
+          email: 'mallikarjun@farmshield.ai',
+          isOnboarded: true,
+          farmDetails: { state: 'Karnataka', district: 'Dharwad', farmArea: 6, soilType: 'Black' }
+        }
+      ];
+
+      const insertedUsers = await User.insertMany(seedFarmers);
+      console.log('Seeded users:', insertedUsers.length);
+
+      // Seed dynamic disease scans to trigger Verified status (>5 scans)
+      // Ramesh: 6 scans (Verified), Siddappa: 5 scans (Verified), Basavaraj: 7 scans (Verified), Mallika: 8 scans (Verified)
+      // Manjunatha: 2 scans (Not Verified), Anjinappa: 0 scans (Not Verified)
+      const mockScans = [];
+      const scanMap = {
+        '+919876543210': 6,
+        '+918765432109': 5,
+        '+916543210987': 7,
+        '+914321098765': 8,
+        '+917654321098': 2,
+        '+915432109876': 0
+      };
+
+      insertedUsers.forEach(user => {
+        const count = scanMap[user.phone] || 0;
+        for (let i = 0; i < count; i++) {
+          mockScans.push({
+            user: user._id,
+            imageUrl: 'https://images.unsplash.com/photo-1592982537447-7440770cbfc9?auto=format&fit=crop&w=300&q=80',
+            cropName: 'Tomato',
+            diseaseName: 'Late Blight'
+          });
+        }
+      });
+
+      if (mockScans.length > 0) {
+        await Scan.insertMany(mockScans);
+        console.log('Seeded dynamic advisor scans:', mockScans.length);
+      }
+
+      // Seed listings in yieldlistings collection
       const mockListings = [
         {
+          seller: insertedUsers[0]._id, // Ramesh
           crop: 'Tomato',
           quantity: 950,
           unit: 'kg',
           pricePerUnit: 12,
-          totalPrice: 11400,
+          totalPrice: 950 * 12,
+          images: [],
           description: 'Freshly harvested vine tomatoes. Rich color, perfect for local retailers.',
-          quality: 'A',
           location: {
-            state: 'Karnataka',
+            address: 'Kolar Gold Fields',
             district: 'Kolar',
-            village: 'Kolar Gold Fields',
-            address: 'Market Yard, Kolar',
+            state: 'Karnataka',
             coordinates: { lat: 13.1368, lng: 78.1292 }
           },
-          contact: {
-            phone: '+919876543210',
-            whatsapp: '+919876543210',
-            email: 'ramesh.g@gmail.com'
-          },
-          farmerName: 'Ramesh Gowda',
-          isVerifiedFarmer: true,
+          contact: { phone: '+919876543210' },
+          quality: 'A',
+          availableFrom: new Date(Date.now() - 2 * 60 * 60 * 1000), // 2 hours ago
+          availableTo: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000),
           status: 'active'
         },
         {
+          seller: insertedUsers[1]._id, // Siddappa
           crop: 'Rice',
           quantity: 500,
           unit: 'kg',
           pricePerUnit: 25,
-          totalPrice: 12500,
+          totalPrice: 500 * 25,
+          images: [],
           description: 'High-quality Sona Masuri paddy. Dry and ready for storage or milling.',
-          quality: 'A',
           location: {
-            state: 'Karnataka',
+            address: 'T. Narsipura',
             district: 'Mysore',
-            village: 'T. Narsipura',
-            address: 'APMC Mysore',
+            state: 'Karnataka',
             coordinates: { lat: 12.2958, lng: 76.6394 }
           },
-          contact: {
-            phone: '+918765432109',
-            whatsapp: '+918765432109',
-            email: 'siddappa.k@gmail.com'
-          },
-          farmerName: 'Siddappa K.',
-          isVerifiedFarmer: true,
+          contact: { phone: '+918765432109' },
+          quality: 'Organic',
+          availableFrom: new Date(Date.now() - 30 * 60 * 1000), // 30 mins ago
+          availableTo: new Date(Date.now() + 180 * 24 * 60 * 60 * 1000),
           status: 'active'
         },
         {
+          seller: insertedUsers[2]._id, // Manjunatha
           crop: 'Potato',
           quantity: 1200,
           unit: 'kg',
           pricePerUnit: 8,
-          totalPrice: 9600,
+          totalPrice: 1200 * 8,
+          images: [],
           description: 'Regular size potatoes. Cleaned and packed in 50kg gunny bags.',
-          quality: 'B',
           location: {
-            state: 'Karnataka',
+            address: 'Maddur',
             district: 'Mandya',
-            village: 'Maddur',
-            address: 'APMC Maddur',
+            state: 'Karnataka',
             coordinates: { lat: 12.5218, lng: 76.8951 }
           },
-          contact: {
-            phone: '+917654321098',
-            whatsapp: '+917654321098',
-            email: 'manjunatha.swamy@gmail.com'
-          },
-          farmerName: 'Manjunatha swamy',
-          isVerifiedFarmer: false,
+          contact: { phone: '+917654321098' },
+          quality: 'B',
+          availableFrom: new Date(Date.now() - 24 * 60 * 60 * 1000), // 1 day ago
+          availableTo: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
           status: 'active'
         },
         {
+          seller: insertedUsers[3]._id, // Basavaraj
           crop: 'Chilli',
           quantity: 600,
           unit: 'kg',
           pricePerUnit: 40,
-          totalPrice: 24000,
+          totalPrice: 600 * 40,
+          images: [],
           description: 'Byadgi red chillies. Moderate heat, extremely rich red natural color scan.',
-          quality: 'Organic',
           location: {
-            state: 'Karnataka',
+            address: 'Gokak',
             district: 'Belagavi',
-            village: 'Gokak',
-            address: 'Gokak APMC',
+            state: 'Karnataka',
             coordinates: { lat: 15.8497, lng: 74.4977 }
           },
-          contact: {
-            phone: '+916543210987',
-            whatsapp: '+916543210987'
-          },
-          farmerName: 'Basavaraj Patil',
-          isVerifiedFarmer: true,
+          contact: { phone: '+916543210987' },
+          quality: 'A',
+          availableFrom: new Date(Date.now() - 3 * 60 * 60 * 1000), // 3 hours ago
+          availableTo: new Date(Date.now() + 15 * 24 * 60 * 60 * 1000),
           status: 'active'
         },
         {
+          seller: insertedUsers[4]._id, // Anjinappa
           crop: 'Onion',
           quantity: 1500,
           unit: 'kg',
           pricePerUnit: 18,
-          totalPrice: 27000,
+          totalPrice: 1500 * 18,
+          images: [],
           description: 'Medium sized onions. Dry skins, good keeping quality.',
-          quality: 'B',
           location: {
-            state: 'Karnataka',
+            address: 'Hiriyur',
             district: 'Chitradurga',
-            village: 'Hiriyur',
-            address: 'APMC Hiriyur',
+            state: 'Karnataka',
             coordinates: { lat: 14.2251, lng: 76.3980 }
           },
-          contact: {
-            phone: '+915432109876',
-            whatsapp: '+915432109876'
-          },
-          farmerName: 'Anjinappa Gowda',
-          isVerifiedFarmer: false,
+          contact: { phone: '+915432109876' },
+          quality: 'B',
+          availableFrom: new Date(Date.now() - 5 * 60 * 60 * 1000), // 5 hours ago
+          availableTo: new Date(Date.now() + 45 * 24 * 60 * 60 * 1000),
           status: 'active'
         },
         {
+          seller: insertedUsers[5]._id, // Mallikarjun
           crop: 'Cotton',
           quantity: 2000,
           unit: 'kg',
           pricePerUnit: 65,
-          totalPrice: 130000,
+          totalPrice: 2000 * 65,
+          images: [],
           description: 'Premium long-staple BT cotton. Free from trash and moisture.',
-          quality: 'A',
           location: {
-            state: 'Karnataka',
+            address: 'Navalgund',
             district: 'Dharwad',
-            village: 'Navalgund',
-            address: 'APMC Dharwad',
+            state: 'Karnataka',
             coordinates: { lat: 15.4589, lng: 75.0078 }
           },
-          contact: {
-            phone: '+914321098765',
-            whatsapp: '+914321098765'
-          },
-          farmerName: 'Mallikarjun Patil',
-          isVerifiedFarmer: true,
+          contact: { phone: '+914321098765' },
+          quality: 'A',
+          availableFrom: new Date(Date.now() - 4 * 60 * 60 * 1000), // 4 hours ago
+          availableTo: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
           status: 'active'
         }
       ];
 
-      await YieldListing.insertMany(mockListings);
-      console.log('Successfully seeded 6 YieldListings into shared database!');
+      await Listing.insertMany(mockListings);
+      console.log('Seeded yieldlistings into database!');
     }
   } catch (error) {
     console.error('Error seeding YieldListings:', error);
   }
 };
 
-// Map yield listing structure to frontend crop listing structure
-function mapListingToClient(listing) {
-  const plain = listing.toObject ? listing.toObject() : listing;
-  return {
-    _id: plain._id,
-    crop: plain.crop,
-    quantity: plain.quantity,
-    price: plain.pricePerUnit,
-    location: {
-      village: plain.location?.village || plain.location?.address || 'Market Yard',
-      district: plain.location?.district || 'Karnataka',
-      coordinates: plain.location?.coordinates || { lat: 12.9716, lng: 77.5946 }
-    },
-    farmer: {
-      name: plain.seller?.name || plain.farmerName || 'Farmer Ji',
-      phone: plain.contact?.phone || '+919999999999',
-      isVerified: plain.isVerifiedFarmer || !!(plain.seller?.farmDetails?.isVerified)
-    },
-    image: plain.images?.[0] || '',
-    harvestDate: plain.createdAt || plain.availableFrom || new Date(),
-    shelfLife: plain.availableTo ? Math.round((new Date(plain.availableTo) - new Date(plain.availableFrom)) / (1000 * 60 * 60 * 24)) : 15,
-    notes: plain.description || '',
-    reports: plain.reports || 0,
-    status: plain.status,
-    createdAt: plain.createdAt || new Date(),
-    distance: plain.distance
-  };
-}
-
-// GET all active yield listings with filters
+// GET all active listings with filters
 router.get('/listings', async (req, res) => {
   try {
     const {
@@ -256,21 +344,24 @@ router.get('/listings', async (req, res) => {
     if (minQty || maxQty) {
       query.quantity = {};
       if (minQty) query.quantity.$gte = Number(minQty);
-      if (maxQty) query.quantity.$lte = Number(maxQty);
+      // Treat 5000 as "5000+" (no upper limit)
+      if (maxQty && Number(maxQty) < 5000) query.quantity.$lte = Number(maxQty);
+      if (Object.keys(query.quantity).length === 0) delete query.quantity;
     }
 
     if (minPrice || maxPrice) {
       query.pricePerUnit = {};
       if (minPrice) query.pricePerUnit.$gte = Number(minPrice);
-      if (maxPrice) query.pricePerUnit.$lte = Number(maxPrice);
+      // Treat 150 as "150+" (no upper limit)
+      if (maxPrice && Number(maxPrice) < 150) query.pricePerUnit.$lte = Number(maxPrice);
+      if (Object.keys(query.pricePerUnit).length === 0) delete query.pricePerUnit;
     }
 
     if (search) {
       query.$or = [
         { crop: { $regex: search, $options: 'i' } },
-        { 'location.village': { $regex: search, $options: 'i' } },
-        { 'location.district': { $regex: search, $options: 'i' } },
-        { farmerName: { $regex: search, $options: 'i' } }
+        { 'location.address': { $regex: search, $options: 'i' } },
+        { 'location.district': { $regex: search, $options: 'i' } }
       ];
     }
 
@@ -281,17 +372,24 @@ router.get('/listings', async (req, res) => {
     if (sort === 'qtyDesc') sortOption = { quantity: -1 };
     if (sort === 'qtyAsc') sortOption = { quantity: 1 };
 
-    let listings = await YieldListing.find(query).populate('seller', 'name avatar farmDetails').sort(sortOption);
+    // Find and populate seller details from 'users' collection
+    const yieldDocs = await Listing.find(query)
+      .populate('seller', 'name avatar farmDetails')
+      .sort(sortOption);
 
-    // Map Mongoose documents to client-compatible listing formats
-    let mappedListings = listings.map(mapListingToClient);
+    // Format all documents to match React frontend structure
+    let formattedListings = [];
+    for (const doc of yieldDocs) {
+      const formatted = await formatListingForFrontend(doc);
+      formattedListings.push(formatted);
+    }
 
     // Geolocation distance filtering
     if (lat && lng) {
       const buyerLat = parseFloat(lat);
       const buyerLng = parseFloat(lng);
 
-      mappedListings = mappedListings.map(listing => {
+      formattedListings = formattedListings.map(listing => {
         const distance = getDistance(
           buyerLat,
           buyerLng,
@@ -305,16 +403,16 @@ router.get('/listings', async (req, res) => {
       // Filter by max distance if requested
       if (maxDist) {
         const maxD = parseFloat(maxDist);
-        mappedListings = mappedListings.filter(l => l.distance <= maxD);
+        formattedListings = formattedListings.filter(l => l.distance <= maxD);
       }
 
       // Sort by distance if sort option is 'distance'
       if (sort === 'distance') {
-        mappedListings.sort((a, b) => a.distance - b.distance);
+        formattedListings.sort((a, b) => a.distance - b.distance);
       }
     }
 
-    res.json(mappedListings);
+    res.json(formattedListings);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -323,9 +421,17 @@ router.get('/listings', async (req, res) => {
 // GET detailed listing
 router.get('/listings/:id', async (req, res) => {
   try {
-    const listing = await YieldListing.findById(req.params.id).populate('seller', 'name avatar farmDetails');
-    if (!listing) return res.status(404).json({ error: 'Listing not found' });
-    res.json(mapListingToClient(listing));
+    const yieldDoc = await Listing.findById(req.params.id)
+      .populate('seller', 'name avatar farmDetails');
+      
+    if (!yieldDoc) return res.status(404).json({ error: 'Listing not found' });
+    
+    // Increments views on the actual listing!
+    yieldDoc.views = (yieldDoc.views || 0) + 1;
+    await yieldDoc.save();
+
+    const formatted = await formatListingForFrontend(yieldDoc);
+    res.json(formatted);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -344,33 +450,52 @@ router.post('/listings', upload.single('image'), async (req, res) => {
       lng,
       farmerName,
       farmerPhone,
-      isVerified,
       harvestDate,
       shelfLife,
       notes
     } = req.body;
 
+    // 1. Check if user exists in MongoDB Users collection
+    let user = await User.findOne({ phone: farmerPhone });
+    if (!user) {
+      // Create user using structural definitions of users collection
+      const sanitizedPhone = farmerPhone.replace(/\s+/g, '');
+      user = await User.create({
+        name: farmerName,
+        phone: farmerPhone,
+        googleId: `google_${sanitizedPhone}_${Date.now()}`,
+        email: `${sanitizedPhone}_${Date.now()}@farmshield.ai`,
+        isOnboarded: true,
+        farmDetails: {
+          state: 'Karnataka',
+          district: district
+        }
+      });
+      console.log(`[Created User] Real user created dynamically for farmer: ${farmerName} (${farmerPhone})`);
+    }
+
     // Use uploaded file path if available
     const imagePath = req.file ? `/uploads/${req.file.filename}` : '';
-    const images = imagePath ? [imagePath] : [];
 
-    const parsedQty = Number(quantity);
-    const parsedPrice = Number(price);
+    // Calculate Available To from shelf life (in days)
+    const shelfLifeDays = Number(shelfLife) || 5;
+    const availableFrom = harvestDate ? new Date(harvestDate) : new Date();
+    const availableTo = new Date(availableFrom.getTime() + shelfLifeDays * 24 * 60 * 60 * 1000);
 
-    const newListing = new YieldListing({
+    // 2. Insert into Mongoose YieldListing collection
+    const newListing = new Listing({
+      seller: user._id,
       crop,
-      quantity: parsedQty,
+      quantity: Number(quantity),
       unit: 'kg',
-      pricePerUnit: parsedPrice,
-      totalPrice: parsedQty * parsedPrice,
+      pricePerUnit: Number(price),
+      totalPrice: Number(quantity) * Number(price),
+      images: imagePath ? [imagePath] : [],
       description: notes || '',
-      images: images,
-      quality: 'A',
       location: {
-        state: 'Karnataka',
+        address: village,
         district: district,
-        village: village,
-        address: village ? `${village}, ${district}` : district,
+        state: 'Karnataka',
         coordinates: {
           lat: Number(lat) || 12.9716, // Default Bangalore coordinates
           lng: Number(lng) || 77.5946
@@ -379,24 +504,27 @@ router.post('/listings', upload.single('image'), async (req, res) => {
       contact: {
         phone: farmerPhone,
         whatsapp: farmerPhone,
-        email: ''
+        email: user.email
       },
-      farmerName: farmerName,
-      isVerifiedFarmer: isVerified === 'true' || isVerified === true,
-      availableFrom: harvestDate ? new Date(harvestDate) : new Date(),
-      availableTo: new Date(Date.now() + (Number(shelfLife) || 5) * 24 * 60 * 60 * 1000) // End date based on shelf life
+      quality: 'A',
+      availableFrom: availableFrom,
+      availableTo: availableTo,
+      status: 'active'
     });
 
     const savedListing = await newListing.save();
 
-    // Map to client schema and trigger Socket.io real-time update
-    const clientCompatibleListing = mapListingToClient(savedListing);
+    // Populate seller details to build formatted listing for Socket.io
+    const populated = await Listing.findById(savedListing._id).populate('seller', 'name avatar farmDetails');
+    const formatted = await formatListingForFrontend(populated);
+
+    // Trigger Socket.io real-time update
     const io = req.app.get('socketio');
     if (io) {
-      io.emit('new_listing', clientCompatibleListing);
+      io.emit('new_listing', formatted);
     }
 
-    res.status(201).json(clientCompatibleListing);
+    res.status(201).json(formatted);
   } catch (error) {
     res.status(400).json({ error: error.message });
   }
@@ -417,10 +545,9 @@ router.post('/leads', async (req, res) => {
     const savedLead = await lead.save();
 
     // Fetch listing details to notify the farmer
-    const listing = await YieldListing.findById(listingId).populate('seller', 'name avatar farmDetails');
+    const listing = await Listing.findById(listingId).populate('seller', 'name');
     if (listing) {
-      const clientCompatible = mapListingToClient(listing);
-      console.log(`[SMS Simulation] To ${clientCompatible.farmer.phone}: Hello ${clientCompatible.farmer.name}, buyer ${buyerName} (${buyerPhone}) has expressed interest in buying ${requestedQuantity} kg of your ${clientCompatible.crop} via FarmShield AI!`);
+      console.log(`[SMS Simulation] To ${listing.contact.phone}: Hello, buyer ${buyerName} (${buyerPhone}) has expressed interest in buying ${requestedQuantity} kg of your ${listing.crop} via FarmShield AI!`);
 
       // Twilio integration
       const { TWILIO_SID, TWILIO_AUTH_TOKEN, TWILIO_PHONE } = process.env;
@@ -428,9 +555,9 @@ router.post('/leads', async (req, res) => {
         try {
           const client = twilio(TWILIO_SID, TWILIO_AUTH_TOKEN);
           await client.messages.create({
-            body: `[FarmShield] ${buyerName} (${buyerPhone}) wants to buy ${requestedQuantity}kg of your ${clientCompatible.crop}. Contact them directly to finalize!`,
+            body: `[FarmShield] ${buyerName} (${buyerPhone}) wants to buy ${requestedQuantity}kg of your ${listing.crop}. Contact them directly to finalize!`,
             from: TWILIO_PHONE,
-            to: clientCompatible.farmer.phone
+            to: listing.contact.phone
           });
           console.log('[SMS Success] Twilio message sent successfully');
         } catch (twilioErr) {
@@ -448,13 +575,13 @@ router.post('/leads', async (req, res) => {
 // POST report suspicious listing
 router.post('/listings/:id/report', async (req, res) => {
   try {
-    const listing = await YieldListing.findById(req.params.id);
+    const listing = await Listing.findById(req.params.id);
     if (!listing) return res.status(404).json({ error: 'Listing not found' });
 
     listing.reports = (listing.reports || 0) + 1;
     await listing.save();
 
-    console.log(`[ALERT] Listing ${listing._id} (${listing.crop} in ${listing.location?.village}) has been reported! Total reports: ${listing.reports}`);
+    console.log(`[ALERT] YieldListing ${listing._id} (${listing.crop} in ${listing.location?.address}) has been reported! Total reports: ${listing.reports}`);
 
     res.json({ message: 'Listing reported successfully', reports: listing.reports });
   } catch (error) {
@@ -469,17 +596,26 @@ router.post('/auth/otp-send', (req, res) => {
   res.json({ success: true, message: 'OTP sent successfully (Hardcoded: 123456)' });
 });
 
-router.post('/auth/otp-verify', (req, res) => {
+router.post('/auth/otp-verify', async (req, res) => {
   const { phone, otp } = req.body;
   if (otp === '123456') {
-    const mockVerifiedPhones = ['+919876543210', '+918765432109', '+916543210987', '+914321098765'];
-    const isVerified = mockVerifiedPhones.includes(phone);
+    // Lookup real farmer in Users collection
+    let user = await User.findOne({ phone: phone });
+    let isVerified = false;
+    let name = 'Farmer Ji';
+
+    if (user) {
+      name = user.name;
+      // Dynamically calculate verification based on scans
+      const scanCount = await Scan.countDocuments({ user: user._id });
+      isVerified = scanCount >= 5;
+    }
 
     res.json({
       success: true,
       farmer: {
         phone,
-        name: phone === '+919876543210' ? 'Ramesh Gowda' : 'Farmer Ji',
+        name: name,
         isVerified: isVerified
       }
     });
@@ -491,14 +627,15 @@ router.post('/auth/otp-verify', (req, res) => {
 // GET current farmer's listings
 router.get('/farmer-listings/:phone', async (req, res) => {
   try {
-    const listings = await YieldListing.find({
-      $or: [
-        { 'contact.phone': req.params.phone },
-        { farmerName: req.params.phone }
-      ]
-    }).sort({ createdAt: -1 });
+    const listings = await Listing.find({ 'contact.phone': req.params.phone }).sort({ createdAt: -1 });
     
-    res.json(listings.map(mapListingToClient));
+    const formattedListings = [];
+    for (const doc of listings) {
+      const formatted = await formatListingForFrontend(doc);
+      formattedListings.push(formatted);
+    }
+    
+    res.json(formattedListings);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -508,17 +645,18 @@ router.get('/farmer-listings/:phone', async (req, res) => {
 router.put('/listings/:id/status', async (req, res) => {
   try {
     const { status } = req.body;
-    const listing = await YieldListing.findByIdAndUpdate(req.params.id, { status }, { new: true }).populate('seller', 'name avatar farmDetails');
+    const listing = await Listing.findByIdAndUpdate(req.params.id, { status }, { new: true })
+      .populate('seller', 'name avatar farmDetails');
     
-    const clientCompatible = mapListingToClient(listing);
+    const formatted = await formatListingForFrontend(listing);
     
     // Notify clients of change
     const io = req.app.get('socketio');
     if (io) {
-      io.emit('listing_status_change', clientCompatible);
+      io.emit('listing_status_change', formatted);
     }
     
-    res.json(clientCompatible);
+    res.json(formatted);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
