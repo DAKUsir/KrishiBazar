@@ -49,7 +49,7 @@ io.on('connection', (socket) => {
 });
 
 // MongoDB Connection
-const MONGO_URI = process.env.MONGO_URI || 'mongodb+srv://agri:krishi@cluster0.qkki81l.mongodb.net/farmshield_marketplace?retryWrites=true&w=majority';
+const MONGO_URI = process.env.MONGODB_URI || process.env.MONGO_URI || 'mongodb+srv://agri:krishi@cluster0.qkki81l.mongodb.net/test?retryWrites=true&w=majority';
 const PORT = process.env.PORT || 5050;
 
 mongoose
