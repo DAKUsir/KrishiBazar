@@ -35,7 +35,7 @@ export default function OnboardingPage() {
   const [form, setForm] = useState({
     language: 'English',
     crops: [],
-    farmDetails: { state: '', district: '', farmArea: '', soilType: 'Loam' }
+    farmDetails: { state: '', district: '', farmArea: '', soilType: 'Loam', irrigationSource: 'Rainfed', experienceLevel: '3-5 years', farmingMethod: 'Conventional' }
   })
 
   const toggleCrop = (crop) => {
@@ -138,7 +138,7 @@ export default function OnboardingPage() {
               <div>
                 <h2 className="text-2xl font-bold font-display text-gray-900 mb-2">Farm details</h2>
                 <p className="text-gray-500 mb-6">Help us give you location-specific advice</p>
-                <div className="space-y-4">
+                <div className="space-y-4 max-h-[360px] overflow-y-auto pr-1">
                   <div>
                     <label className="block text-sm font-semibold text-gray-700 mb-1.5">State</label>
                     <select
@@ -182,6 +182,49 @@ export default function OnboardingPage() {
                       </select>
                     </div>
                   </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-semibold text-gray-700 mb-1.5">Irrigation Source</label>
+                      <select
+                        value={form.farmDetails.irrigationSource}
+                        onChange={e => setForm(f => ({ ...f, farmDetails: { ...f.farmDetails, irrigationSource: e.target.value } }))}
+                        className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-green-500 bg-white"
+                      >
+                        <option value="Rainfed">Rainfed</option>
+                        <option value="Drip Irrigation">Drip Irrigation</option>
+                        <option value="Sprinkler">Sprinkler</option>
+                        <option value="Tubewell">Tubewell</option>
+                        <option value="Canal">Canal</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-semibold text-gray-700 mb-1.5">Farming Method</label>
+                      <select
+                        value={form.farmDetails.farmingMethod}
+                        onChange={e => setForm(f => ({ ...f, farmDetails: { ...f.farmDetails, farmingMethod: e.target.value } }))}
+                        className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-green-500 bg-white"
+                      >
+                        <option value="Conventional">Conventional</option>
+                        <option value="Semi-Organic">Semi-Organic</option>
+                        <option value="Fully Organic">Fully Organic</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-1.5">Farming Experience</label>
+                    <select
+                      value={form.farmDetails.experienceLevel}
+                      onChange={e => setForm(f => ({ ...f, farmDetails: { ...f.farmDetails, experienceLevel: e.target.value } }))}
+                      className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-green-500 bg-white"
+                    >
+                      <option value="1-2 years">1-2 years</option>
+                      <option value="3-5 years">3-5 years</option>
+                      <option value="5-10 years">5-10 years</option>
+                      <option value="10+ years">10+ years</option>
+                    </select>
+                  </div>
                 </div>
               </div>
             )}
@@ -211,6 +254,10 @@ export default function OnboardingPage() {
                   <div className="flex justify-between text-sm">
                     <span className="text-gray-500">Location</span>
                     <span className="font-semibold text-gray-900">{form.farmDetails.district && `${form.farmDetails.district}, `}{form.farmDetails.state || 'India'}</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-500">Method & Irrigation</span>
+                    <span className="font-semibold text-gray-900">{form.farmDetails.farmingMethod} · {form.farmDetails.irrigationSource}</span>
                   </div>
                 </div>
               </div>

@@ -50,10 +50,17 @@ export default function YieldPredictor() {
     if (c.includes('tomato')) return 'Tomato'
     return 'Wheat'
   }
+
+  const getInitialSoil = () => {
+    const s = user?.farmDetails?.soilType || 'Loam'
+    if (s === 'Clay') return 'Clayey'
+    if (s === 'Loam') return 'Loamy'
+    return s
+  }
   
   // Input states
   const [crop, setCrop] = useState(getInitialCrop)
-  const [soil, setSoil] = useState(user?.farmDetails?.soilType || 'Loamy')
+  const [soil, setSoil] = useState(getInitialSoil)
   const [season, setSeason] = useState('Rabi')
   const [disease, setDisease] = useState('None')
   const [irrigation, setIrrigation] = useState('Irrigated')

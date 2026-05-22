@@ -21,6 +21,9 @@ const DEMO_USER = {
     district: 'Bengaluru Rural',
     farmArea: 5,
     soilType: 'Loam',
+    irrigationSource: 'Drip Irrigation',
+    experienceLevel: '5-10 years',
+    farmingMethod: 'Semi-Organic',
   },
 }
 // ─────────────────────────────────────────────────────────────────────────────

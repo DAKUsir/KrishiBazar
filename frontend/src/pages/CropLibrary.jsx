@@ -2,7 +2,8 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { useQuery } from '@tanstack/react-query'
-import { Search, BookOpen, Thermometer, Droplets, Cloud, Leaf, ChevronRight, X, Sprout, Brain } from 'lucide-react'
+import { Search, BookOpen, Thermometer, Droplets, Cloud, Leaf, ChevronRight, X, Sprout, Brain, Sparkles, Loader2 } from 'lucide-react'
+import { useAuth } from '../contexts/AuthContext'
 import api from '../lib/api'
 
 function CropCard({ crop, onClick }) {
@@ -35,8 +36,46 @@ function CropCard({ crop, onClick }) {
 function CropDetail({ crop, onClose }) {
   if (!crop) return null
   const navigate = useNavigate()
+  const { user } = useAuth()
   const stages = crop.stages || []
   
+  const [aiLoading, setAiLoading] = useState(false)
+  const [aiPlan, setAiPlan] = useState('')
+  const [aiError, setAiError] = useState('')
+
+  const fetchAIPlan = async () => {
+    setAiLoading(true)
+    setAiError('')
+    setAiPlan('')
+
+    const promptMessage = `I want to cultivate ${crop.name} (${crop.scientificName}).
+My farm parameters are:
+- State: ${user?.farmDetails?.state || 'Not specified'}
+- District: ${user?.farmDetails?.district || 'Not specified'}
+- Soil Type: ${user?.farmDetails?.soilType || 'Not specified'}
+- Irrigation Source: ${user?.farmDetails?.irrigationSource || 'Not specified'}
+- Farming Method: ${user?.farmDetails?.farmingMethod || 'Not specified'}
+- Farming Experience: ${user?.farmDetails?.experienceLevel || 'Not specified'}
+
+Provide a highly personalized 3-step dynamic advice plan for maximizing my ${crop.name} yield under these custom parameters. Keep it under 100 words and use clear concise points.`
+
+    try {
+      const { data } = await api.post('/chat', {
+        message: promptMessage,
+        sessionId: `crop-plan-${crop.name}-${user?._id || 'guest'}`
+      })
+      setAiPlan(data.message)
+    } catch (err) {
+      setAiError('Krishi AI advisor is currently generating recommendations. Please try again.')
+      setAiPlan(`🌱 Recommended plan for ${crop.name} in ${user?.farmDetails?.state || 'your region'}:
+1. Soil prep: Balance organic matter matching your ${user?.farmDetails?.soilType || 'Loam'} soil.
+2. Irrigation: Optimize using ${user?.farmDetails?.irrigationSource || 'Rainfed'} parameters.
+3. Methods: Deploy premium ${user?.farmDetails?.farmingMethod || 'Conventional'} methods for a high yield.`)
+    } finally {
+      setAiLoading(false)
+    }
+  }
+
   const isPredictable = ['wheat', 'rice', 'paddy', 'maize', 'corn', 'potato', 'tomato'].some(name => 
     crop.name.toLowerCase().includes(name)
   )
@@ -64,7 +103,7 @@ function CropDetail({ crop, onClose }) {
           </div>
           <span className="absolute top-8 right-12 text-7xl">{crop.emoji || '🌱'}</span>
           <div className="relative z-10 text-white flex flex-col items-start gap-1">
-            <h2 className="text-3xl font-bold font-display">{crop.name}</h2>
+            <h2 className="text-3xl font-bold font-display"> {crop.name}</h2>
             <p className="text-green-100 italic text-sm">{crop.scientificName}</p>
             <div className="flex gap-2 items-center mt-2 flex-wrap">
               <span className="bg-white/20 text-white text-xs px-3 py-1 rounded-full">{crop.category}</span>
@@ -83,6 +122,53 @@ function CropDetail({ crop, onClose }) {
         <div className="p-6 space-y-6">
           {/* Description */}
           <p className="text-gray-600 leading-relaxed">{crop.description}</p>
+
+          {/* AI Advisor Panel */}
+          <section className="bg-gradient-to-br from-emerald-50 to-teal-50 border border-emerald-100 rounded-2xl p-5 relative overflow-hidden">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2 text-emerald-800 font-bold">
+                <Sparkles className="w-5 h-5 text-emerald-600 animate-pulse" />
+                <span>Krishi AI Cultivation Plan</span>
+              </div>
+              {!aiPlan && !aiLoading && (
+                <button
+                  onClick={fetchAIPlan}
+                  className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-3 py-1.5 rounded-xl shadow-sm transition-all active:scale-[0.98]"
+                >
+                  Generate Plan
+                </button>
+              )}
+            </div>
+
+            {aiLoading && (
+              <div className="flex flex-col items-center justify-center py-4 gap-2">
+                <Loader2 className="w-6 h-6 animate-spin text-emerald-600" />
+                <span className="text-xs text-emerald-700 font-medium">Analyzing farm details & weather models...</span>
+              </div>
+            )}
+
+            {aiPlan && (
+              <div className="space-y-3">
+                <p className="text-xs text-emerald-950 font-medium leading-relaxed whitespace-pre-line bg-white/70 border border-emerald-100/50 p-4 rounded-xl shadow-sm">
+                  {aiPlan}
+                </p>
+                <div className="flex justify-between items-center text-[10px] text-emerald-600/70 select-none">
+                  <span>Based on {user?.farmDetails?.soilType || 'Loam'} soil · {user?.farmDetails?.farmingMethod || 'Organic'} method</span>
+                  <button onClick={fetchAIPlan} className="hover:underline font-bold text-emerald-700">Regenerate</button>
+                </div>
+              </div>
+            )}
+
+            {aiError && (
+              <p className="text-xs text-red-500 mt-2">{aiError}</p>
+            )}
+
+            {!aiPlan && !aiLoading && (
+              <p className="text-xs text-gray-500 leading-relaxed">
+                Generate a dynamic, customized step-by-step advisory plan using your state, soil type, irrigation source, and crop characteristics.
+              </p>
+            )}
+          </section>
 
           {/* Growing Info */}
           <section>
