@@ -4,6 +4,7 @@ import { motion } from 'framer-motion'
 import { useQuery } from '@tanstack/react-query'
 import { Search, BookOpen, Thermometer, Droplets, Cloud, Leaf, ChevronRight, X, Sprout, Brain, Sparkles, Loader2 } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
+import { useTranslation } from '../lib/translations'
 import api from '../lib/api'
 
 function CropCard({ crop, onClick }) {
@@ -297,6 +298,7 @@ Provide a highly personalized 3-step dynamic advice plan for maximizing my ${cro
 }
 
 export default function CropLibrary() {
+  const { t } = useTranslation()
   const [search, setSearch] = useState('')
   const [category, setCategory] = useState('')
   const [selectedCrop, setSelectedCrop] = useState(null)
@@ -317,7 +319,7 @@ export default function CropLibrary() {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
             <input
               type="text"
-              placeholder="Search crops by name or scientific name..."
+              placeholder={t('Search crops by name or scientific name...')}
               value={search}
               onChange={e => setSearch(e.target.value)}
               className="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:border-green-500 bg-white shadow-sm"
@@ -331,7 +333,7 @@ export default function CropLibrary() {
             onClick={() => setCategory('')}
             className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${!category ? 'bg-green-600 text-white' : 'bg-white text-gray-600 border border-gray-200 hover:border-green-300'}`}
           >
-            All Crops
+            {t('All Crops')}
           </button>
           {categories.map(cat => (
             <button
@@ -339,7 +341,7 @@ export default function CropLibrary() {
               onClick={() => setCategory(cat === category ? '' : cat)}
               className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${category === cat ? 'bg-green-600 text-white' : 'bg-white text-gray-600 border border-gray-200 hover:border-green-300'}`}
             >
-              {cat}
+              {t(cat)}
             </button>
           ))}
         </div>

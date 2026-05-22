@@ -759,11 +759,11 @@ function ScanHistory() {
               className="flex items-center gap-3.5 p-3 rounded-xl border border-[#DDE8DC] hover:bg-[#EEF3E8]/40 transition-colors"
             >
               <div className="w-10 h-10 rounded-full bg-[#D0E9D4]/40 border border-[#DDE8DC] flex items-center justify-center text-xs font-bold text-[#2D6A47] font-sans uppercase">
-                {scan.cropName.slice(0,2)}
+                {(scan.cropName || 'Crop').slice(0,2)}
               </div>
               <div className="flex-1 min-w-0">
                 <p className="font-semibold text-xs text-[#111D14] truncate">{scan.diseaseName || 'Processing...'}</p>
-                <p className="text-[10px] text-[#7A9080] mt-0.5 font-medium">{scan.cropName} · {formatDate(scan.createdAt)}</p>
+                <p className="text-[10px] text-[#7A9080] mt-0.5 font-medium">{scan.cropName || 'Crop'} · {formatDate(scan.createdAt)}</p>
               </div>
               <span className={`text-[10px] font-bold uppercase tracking-wider px-3 py-1 rounded-full border bg-white ${borderStyle}`}>
                 {scan.severity}

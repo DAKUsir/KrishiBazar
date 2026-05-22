@@ -5,6 +5,7 @@ import {
   Brain, X, AlertTriangle, CheckCircle2, ChevronRight,
   Sparkles, Loader2, Landmark
 } from 'lucide-react'
+import { useTranslation } from '../lib/translations'
 import api from '../lib/api'
 
 // Major Indian agricultural states and their key districts
@@ -38,6 +39,7 @@ const COMMODITIES = [
 ]
 
 export default function MandiPrices() {
+  const { t } = useTranslation()
   const [commodity, setCommodity] = useState('')
   const [state, setState] = useState('')
   const [district, setDistrict] = useState('')
@@ -123,11 +125,11 @@ You are an agricultural market analyst. Give simple farmer-friendly advice:
       >
         <div>
           <div className="flex items-center gap-2 bg-white/20 text-white text-xs font-semibold px-3 py-1 rounded-full w-fit mb-3">
-            <Landmark className="w-3.5 h-3.5" /> APMC Real-Time Prices
+            <Landmark className="w-3.5 h-3.5" /> {t('APMC Real-Time Prices')}
           </div>
-          <h2 className="text-2xl font-bold font-display">Live Mandi Market Prices</h2>
+          <h2 className="text-2xl font-bold font-display">{t('Live Mandi Market Prices')}</h2>
           <p className="text-emerald-50 mt-1">
-            Real-time daily mandi rates sourced directly from official state APMC markets.
+            {t('Real-time daily mandi rates sourced directly from official state APMC markets.')}
           </p>
         </div>
         <div className="hidden md:block text-6xl opacity-35">📊</div>
@@ -137,7 +139,7 @@ You are an agricultural market analyst. Give simple farmer-friendly advice:
       <div className="dashboard-card p-5 bg-white border border-gray-100 shadow-sm rounded-2xl">
         <form onSubmit={handleSearchSubmit} className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
           <div>
-            <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Commodity Name</label>
+            <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">{t('Commodity Name')}</label>
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4.5 h-4.5 text-gray-400 pointer-events-none" />
               <select
@@ -145,7 +147,7 @@ You are an agricultural market analyst. Give simple farmer-friendly advice:
                 onChange={(e) => setCommodity(e.target.value)}
                 className="w-full pl-10 pr-10 py-2.5 text-sm rounded-xl border border-gray-200 focus:outline-none focus:border-green-500 bg-gray-50/50 transition-all font-medium appearance-none cursor-pointer"
               >
-                <option value="">All Commodities</option>
+                <option value="">{t('All Commodities')}</option>
                 {COMMODITIES.map((c) => (
                   <option key={c} value={c}>{c}</option>
                 ))}
@@ -155,7 +157,7 @@ You are an agricultural market analyst. Give simple farmer-friendly advice:
           </div>
 
           <div>
-            <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">State</label>
+            <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">{t('State')}</label>
             <div className="relative">
               <select
                 value={state}
@@ -165,7 +167,7 @@ You are an agricultural market analyst. Give simple farmer-friendly advice:
                 }}
                 className="w-full px-4 pr-10 py-2.5 text-sm rounded-xl border border-gray-200 focus:outline-none focus:border-green-500 bg-gray-50/50 transition-all font-medium appearance-none cursor-pointer"
               >
-                <option value="">All States</option>
+                <option value="">{t('All States')}</option>
                 {Object.keys(STATE_DISTRICTS).map((s) => (
                   <option key={s} value={s}>{s}</option>
                 ))}
@@ -175,7 +177,7 @@ You are an agricultural market analyst. Give simple farmer-friendly advice:
           </div>
 
           <div>
-            <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">District</label>
+            <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">{t('District')}</label>
             <div className="relative">
               <select
                 value={district}
@@ -183,7 +185,7 @@ You are an agricultural market analyst. Give simple farmer-friendly advice:
                 disabled={!state}
                 className="w-full px-4 pr-10 py-2.5 text-sm rounded-xl border border-gray-200 focus:outline-none focus:border-green-500 bg-gray-50/50 transition-all font-medium appearance-none cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
               >
-                <option value="">{state ? 'All Districts' : 'Select a State first'}</option>
+                <option value="">{state ? t('All Districts') : t('Select a State first')}</option>
                 {state && STATE_DISTRICTS[state]?.map((d) => (
                   <option key={d} value={d}>{d}</option>
                 ))}
@@ -198,13 +200,13 @@ You are an agricultural market analyst. Give simple farmer-friendly advice:
               disabled={loading}
               className="flex-1 bg-green-600 hover:bg-green-700 text-white font-bold py-2.5 px-4 rounded-xl flex items-center justify-center gap-2 text-sm shadow-md transition-all active:scale-[0.98]"
             >
-              Search
+              {t('Search')}
             </button>
             <button
               type="button"
               onClick={fetchPrices}
               disabled={loading}
-              title="Refresh Mandi Rates"
+              title={t('Refresh Mandi Rates')}
               className="p-2.5 rounded-xl border border-gray-200 text-gray-600 bg-white hover:bg-gray-50 transition-all disabled:opacity-50"
             >
               <RefreshCw className={`w-5 h-5 ${loading ? 'animate-spin text-green-600' : ''}`} />
@@ -299,15 +301,15 @@ You are an agricultural market analyst. Give simple farmer-friendly advice:
                 {/* Price Grid */}
                 <div className="grid grid-cols-3 gap-2 bg-gray-50 rounded-xl p-3 mb-4 text-center border border-gray-100">
                   <div>
-                    <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider block">Min Price</span>
+                    <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider block">{t('Min Price')}</span>
                     <span className="text-sm font-bold text-gray-700">₹{rec.minPrice}</span>
                   </div>
                   <div className="border-x border-gray-200">
-                    <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider block">Modal Rate</span>
+                    <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider block">{t('Modal Price')}</span>
                     <span className="text-sm font-black text-green-600">₹{rec.modalPrice}</span>
                   </div>
                   <div>
-                    <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider block">Max Price</span>
+                    <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider block">{t('Max Price')}</span>
                     <span className="text-sm font-bold text-gray-700">₹{rec.maxPrice}</span>
                   </div>
                 </div>

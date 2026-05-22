@@ -6,6 +6,7 @@ import {
   Bot, LogOut, ChevronRight, TrendingUp, Brain, X, Save, Edit2, Loader2, Sparkles
 } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
+import { useTranslation } from '../lib/translations'
 import { INDIAN_STATES, SOIL_TYPES, CROP_LIST } from '../lib/utils'
 import api from '../lib/api'
 
@@ -33,6 +34,7 @@ const navItems = [
 export default function Sidebar() {
   const { user, logout, updateUser } = useAuth()
   const navigate = useNavigate()
+  const { t } = useTranslation()
 
   // Profile modal states
   const [isProfileOpen, setIsProfileOpen] = useState(false)
@@ -123,7 +125,7 @@ export default function Sidebar() {
             </div>
             <div>
               <h1 className="text-white font-bold text-lg font-display tracking-tight leading-none">Krishi Bazar</h1>
-              <p className="text-[#6B8070] text-[10px] font-bold tracking-wider uppercase mt-1">Smart Agriculture</p>
+              <p className="text-[#6B8070] text-[10px] font-bold tracking-wider uppercase mt-1">{t('Smart Agriculture')}</p>
             </div>
           </div>
         </div>
@@ -155,7 +157,7 @@ export default function Sidebar() {
 
         {/* Navigation */}
         <nav className="flex-1 py-4 space-y-0.5 overflow-y-auto custom-scrollbar">
-          <p className="text-[#6B8070] text-[10px] font-bold tracking-wider uppercase px-6 mb-3">Navigation</p>
+          <p className="text-[#6B8070] text-[10px] font-bold tracking-wider uppercase px-6 mb-3">{t('Navigation')}</p>
           {navItems.map((item) => (
             <NavLink
               key={item.to}
@@ -171,8 +173,8 @@ export default function Sidebar() {
                     <item.icon className="w-5 h-5" />
                   </div>
                   <div className="flex-1">
-                    <div className="text-white font-semibold text-xs leading-none tracking-tight">{item.label}</div>
-                    <div className="text-[10px] text-emerald-200/50 mt-1">{item.description}</div>
+                    <div className="text-white font-semibold text-xs leading-none tracking-tight">{t(item.label)}</div>
+                    <div className="text-[10px] text-emerald-200/50 mt-1">{t(item.description)}</div>
                   </div>
                   {isActive && <ChevronRight className="w-4 h-4 text-[#3DB268]" />}
                 </>
@@ -187,7 +189,7 @@ export default function Sidebar() {
             {user?.farmDetails?.farmArea && (
               <span className="flex items-center justify-center gap-1.5 bg-white/5 py-1 px-3.5 rounded-lg border border-white/5">
                 <span className="w-1.5 h-1.5 rounded-full bg-[#4CAF72] animate-pulse" />
-                <span>{user.farmDetails.farmArea} Acres · {user.farmDetails.soilType} Soil</span>
+                <span>{user.farmDetails.farmArea} {t('Acres')} · {user.farmDetails.soilType} {t('Soil')}</span>
               </span>
             )}
           </div>
@@ -197,7 +199,7 @@ export default function Sidebar() {
                        hover:bg-red-950/40 hover:text-red-200 transition-all duration-200 font-semibold text-xs"
           >
             <LogOut className="w-4 h-4" />
-            <span>Sign Out</span>
+            <span>{t('Sign Out')}</span>
           </button>
         </div>
       </motion.aside>

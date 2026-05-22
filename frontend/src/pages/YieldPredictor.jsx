@@ -8,6 +8,7 @@ import {
 } from 'lucide-react'
 import api from '../lib/api'
 import { useAuth } from '../contexts/AuthContext'
+import { useTranslation } from '../lib/translations'
 import { formatCurrency } from '../lib/utils'
 
 // Stylized premium wheat illustration for empty/waiting states
@@ -36,6 +37,7 @@ const WheatIllustration = () => (
 )
 
 export default function YieldPredictor() {
+  const { t } = useTranslation()
   const { user } = useAuth()
   const [searchParams] = useSearchParams()
   
@@ -220,10 +222,10 @@ export default function YieldPredictor() {
             <span>/</span>
             <span>Tools</span>
             <span>/</span>
-            <span className="text-[#2E6B47]">Yield Predictor</span>
+            <span className="text-[#2E6B47]">{t('Yield Predictor')}</span>
           </div>
-          <h2 className="text-2xl font-bold font-display text-[#1A3D2B] tracking-tight leading-tight">Yield Predictor</h2>
-          <p className="text-xs text-[#6B8070] mt-0.5 font-medium">Predict yield productivity and financial returns using Gradio AI.</p>
+          <h2 className="text-2xl font-bold font-display text-[#1A3D2B] tracking-tight leading-tight">{t('AI Yield Predictor')}</h2>
+          <p className="text-xs text-[#6B8070] mt-0.5 font-medium">{t('Predict your crop yield using advanced machine learning models')}</p>
         </div>
         <div className="flex items-center gap-3">
           <span className="text-[10px] font-bold uppercase tracking-wider px-3 py-1 bg-white border border-[#DCE8DC] rounded-md text-[#2E6B47] flex items-center gap-1.5 shadow-sm">
@@ -253,14 +255,14 @@ export default function YieldPredictor() {
           >
             <div className="flex items-center gap-2 mb-6 border-b border-[#DCE8DC] pb-4">
               <Sliders className="w-4 h-4 text-[#2E6B47]" />
-              <h3 className="font-bold text-xs uppercase tracking-widest text-[#6B8070] font-sans">Yield Inputs</h3>
+              <h3 className="font-bold text-xs uppercase tracking-widest text-[#6B8070] font-sans">{t('Yield Inputs')}</h3>
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-6">
               <div className="grid sm:grid-cols-2 gap-x-6 gap-y-5">
                 {/* Crop select */}
                 <div>
-                  <label className="block text-[10px] font-bold text-[#6B8070] uppercase tracking-wider mb-2">Crop Type</label>
+                  <label className="block text-[10px] font-bold text-[#6B8070] uppercase tracking-wider mb-2">{t('Crop Type')}</label>
                   <div className="relative">
                     <select
                       value={crop}
@@ -279,7 +281,7 @@ export default function YieldPredictor() {
 
                 {/* Soil select */}
                 <div>
-                  <label className="block text-[10px] font-bold text-[#6B8070] uppercase tracking-wider mb-2">Soil Type</label>
+                  <label className="block text-[10px] font-bold text-[#6B8070] uppercase tracking-wider mb-2">{t('Soil Type')}</label>
                   <div className="relative">
                     <select
                       value={soil}
