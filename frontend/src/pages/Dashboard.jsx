@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react'
+import { useState, useCallback, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useDropzone } from 'react-dropzone'
 import { useQuery } from '@tanstack/react-query'
@@ -92,12 +92,16 @@ function TempCounter({ targetTemp }) {
 
 // ─── Crop Disease Detection Card ─────────────────────────────────
 function DiseaseUploadSection({ onScanComplete }) {
+  const { t } = useTranslation()
   const [file, setFile]         = useState(null)
   const [preview, setPreview]   = useState(null)
   const [uploading, setUploading] = useState(false)
   const [analyzing, setAnalyzing] = useState(false)
   const [error, setError]       = useState(null)
   const [done, setDone]         = useState(false)
+  const [cameraActive, setCameraActive] = useState(false)
+  const videoRef = useRef(null)
+  const [stream, setStream] = useState(null)
 
   const onDrop = useCallback((files) => {
     if (!files.length) return
@@ -113,7 +117,52 @@ function DiseaseUploadSection({ onScanComplete }) {
   })
 
   const reset = () => {
-    setFile(null); setPreview(null); setError(null); setDone(false)
+    setFile(null); setPreview(null); setError(null); setDone(false); stopCamera()
+  }
+
+  const startCamera = async () => {
+    setCameraActive(true)
+    setError(null)
+    setFile(null)
+    setPreview(null)
+    try {
+      const mediaStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } })
+      setStream(mediaStream)
+      if (videoRef.current) {
+        videoRef.current.srcObject = mediaStream
+      }
+    } catch (err) {
+      console.error('Camera access error:', err)
+      setError('Could not access camera. Please check permissions.')
+      setCameraActive(false)
+    }
+  }
+
+  const stopCamera = () => {
+    if (stream) {
+      stream.getTracks().forEach(track => track.stop())
+    }
+    setStream(null)
+    setCameraActive(false)
+  }
+
+  const capturePhoto = () => {
+    if (!videoRef.current) return
+    const video = videoRef.current
+    const canvas = document.createElement('canvas')
+    canvas.width = video.videoWidth || 640
+    canvas.height = video.videoHeight || 480
+    const ctx = canvas.getContext('2d')
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height)
+    
+    canvas.toBlob((blob) => {
+      if (blob) {
+        const capturedFile = new File([blob], `crop_scan_${Date.now()}.jpg`, { type: 'image/jpeg' })
+        setFile(capturedFile)
+        setPreview(URL.createObjectURL(capturedFile))
+        stopCamera()
+      }
+    }, 'image/jpeg', 0.95)
   }
 
   const handleDetect = async () => {
@@ -148,35 +197,66 @@ function DiseaseUploadSection({ onScanComplete }) {
     <div className="bg-white border border-[#DDE8DC] rounded-[20px] p-7 shadow-sm transition-all duration-300">
       <div className="flex items-center justify-between mb-5 border-b border-[#DDE8DC]/60 pb-3">
         <div>
-          <h4 className="text-[10px] font-bold text-[#7A9080] uppercase tracking-[0.12em] font-sans">Crop Disease Detection</h4>
-          <p className="text-xs text-[#3A4D3D] mt-0.5 font-medium">Diagnose infections and get precise agricultural advice.</p>
+          <h4 className="text-[10px] font-bold text-[#7A9080] uppercase tracking-[0.12em] font-sans">{t('Crop Disease Detection')}</h4>
+          <p className="text-xs text-[#3A4D3D] mt-0.5 font-medium">{t('Diagnose infections and get precise agricultural advice.')}</p>
         </div>
       </div>
 
+      {/* Camera Live Stream Window */}
+      {cameraActive && (
+        <div className="space-y-4 mb-4">
+          <div className="relative overflow-hidden rounded-xl bg-black aspect-video border border-gray-800">
+            <video ref={videoRef} autoPlay playsInline className="w-full h-full object-cover" />
+            <button
+              onClick={stopCamera}
+              className="absolute top-3 right-3 w-8 h-8 bg-black/60 text-white rounded-full flex items-center justify-center hover:bg-black transition-colors"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+          <button
+            onClick={capturePhoto}
+            className="w-full bg-gradient-to-r from-green-600 to-emerald-700 hover:from-green-500 hover:to-emerald-600 text-white font-bold py-3 rounded-xl flex items-center justify-center gap-2 shadow-md transition-all active:scale-[0.98]"
+          >
+            <Camera className="w-4 h-4 text-white" />
+            {t('Capture Crop Photo')}
+          </button>
+        </div>
+      )}
+
       {/* Drop zone */}
-      {!preview && (
-        <div
-          {...getRootProps()}
-          className={`border border-dashed border-[#DDE8DC] rounded-xl p-8 text-center bg-[#EEF3E8] cursor-pointer select-none transition-all duration-300 hover:border-[#2D6A47] hover:bg-[#D0E9D4]/30 hover:shadow-inner`}
-        >
-          <input {...getInputProps()} />
-          <div className="w-16 h-16 bg-white border border-[#DDE8DC] rounded-2xl flex items-center justify-center mx-auto mb-4 transition-transform duration-300 hover:scale-105">
-            <ThinUploadIcon />
+      {!preview && !cameraActive && (
+        <div className="space-y-4">
+          <div
+            {...getRootProps()}
+            className={`border border-dashed border-[#DDE8DC] rounded-xl p-8 text-center bg-[#EEF3E8] cursor-pointer select-none transition-all duration-300 hover:border-[#2D6A47] hover:bg-[#D0E9D4]/30 hover:shadow-inner`}
+          >
+            <input {...getInputProps()} />
+            <div className="w-16 h-16 bg-white border border-[#DDE8DC] rounded-2xl flex items-center justify-center mx-auto mb-4 transition-transform duration-300 hover:scale-105">
+              <ThinUploadIcon />
+            </div>
+            <p className="font-display font-semibold text-lg text-[#111D14] mb-1">
+              {isDragActive ? 'Drop files here' : 'Drag & drop a crop photo'}
+            </p>
+            <p className="text-[#7A9080] text-xs mb-5">or click to browse local files</p>
+            <div className="flex justify-center gap-2">
+              <span className="border border-[#DDE8DC] bg-white text-[#7A9080] font-mono text-[10px] font-bold px-2.5 py-1 rounded">JPG</span>
+              <span className="border border-[#DDE8DC] bg-white text-[#7A9080] font-mono text-[10px] font-bold px-2.5 py-1 rounded">PNG</span>
+              <span className="border border-[#DDE8DC] bg-white text-[#7A9080] font-mono text-[10px] font-bold px-2.5 py-1 rounded">WEBP</span>
+            </div>
           </div>
-          <p className="font-display font-semibold text-lg text-[#111D14] mb-1">
-            {isDragActive ? 'Drop files here' : 'Drag & drop a crop photo'}
-          </p>
-          <p className="text-[#7A9080] text-xs mb-5">or click to browse local files</p>
-          <div className="flex justify-center gap-2">
-            <span className="border border-[#DDE8DC] bg-white text-[#7A9080] font-mono text-[10px] font-bold px-2.5 py-1 rounded">JPG</span>
-            <span className="border border-[#DDE8DC] bg-white text-[#7A9080] font-mono text-[10px] font-bold px-2.5 py-1 rounded">PNG</span>
-            <span className="border border-[#DDE8DC] bg-white text-[#7A9080] font-mono text-[10px] font-bold px-2.5 py-1 rounded">WEBP</span>
-          </div>
+          <button
+            onClick={startCamera}
+            className="w-full py-3 bg-[#EEF3E8] hover:bg-[#D0E9D4]/40 text-[#2D6A47] border border-[#DDE8DC] font-bold rounded-xl flex items-center justify-center gap-2 transition-all active:scale-[0.98]"
+          >
+            <Camera className="w-4 h-4 text-[#2D6A47]" />
+            {t('Take Photo with Camera')}
+          </button>
         </div>
       )}
 
       {/* Image preview */}
-      {preview && (
+      {preview && !cameraActive && (
         <div className="space-y-4">
           <div className="relative overflow-hidden rounded-xl">
             <img src={preview} alt="Crop preview" className="w-full h-56 object-cover" />
