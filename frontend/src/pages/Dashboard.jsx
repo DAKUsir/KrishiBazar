@@ -14,40 +14,57 @@ import { getSeverityColor, formatDate } from '../lib/utils'
 
 // ─── Disease Upload ─────────────────────────────────────────────
 function DiseaseUploadSection({ onScanComplete }) {
+  const [file, setFile]         = useState(null)
+  const [preview, setPreview]   = useState(null)
   const [uploading, setUploading] = useState(false)
   const [analyzing, setAnalyzing] = useState(false)
-  const [preview, setPreview] = useState(null)
-  const [scanId, setScanId] = useState(null)
+  const [error, setError]       = useState(null)
+  const [done, setDone]         = useState(false)
 
-  const onDrop = useCallback(async (files) => {
+  const onDrop = useCallback((files) => {
     if (!files.length) return
-    const file = files[0]
-    setPreview(URL.createObjectURL(file))
+    setFile(files[0])
+    setPreview(URL.createObjectURL(files[0]))
+    setError(null)
+    setDone(false)
+  }, [])
+
+  const { getRootProps, getInputProps, isDragActive } = useDropzone({
+    onDrop, accept: { 'image/*': [] }, maxFiles: 1,
+    disabled: uploading || analyzing,
+  })
+
+  const reset = () => {
+    setFile(null); setPreview(null); setError(null); setDone(false)
+  }
+
+  const handleDetect = async () => {
+    if (!file) return
+    setError(null)
     setUploading(true)
 
     try {
       const fd = new FormData()
       fd.append('image', file)
-      const { data } = await api.post('/disease/upload', fd)
-      setScanId(data.scanId)
+      const { data: uploadData } = await api.post('/disease/upload', fd)
       setUploading(false)
       setAnalyzing(true)
 
-      const { data: result } = await api.post('/disease/analyze', { scanId: data.scanId })
+      const { data: result } = await api.post('/disease/analyze', {
+        scanId: uploadData.scanId,
+      })
+      setDone(true)
       onScanComplete(result.scan)
     } catch (err) {
-      console.error(err)
+      const msg = err.response?.data?.message || err.message || 'Detection failed'
+      setError(msg)
     } finally {
       setUploading(false)
       setAnalyzing(false)
     }
-  }, [onScanComplete])
+  }
 
-  const { getRootProps, getInputProps, isDragActive } = useDropzone({
-    onDrop, accept: { 'image/*': [] }, maxFiles: 1
-  })
-
-  const clearPreview = () => { setPreview(null); setScanId(null) }
+  const isBusy = uploading || analyzing
 
   return (
     <div className="dashboard-card p-6">
@@ -57,11 +74,12 @@ function DiseaseUploadSection({ onScanComplete }) {
         </div>
         <div>
           <h3 className="font-bold text-gray-900 font-display">Crop Disease Detection</h3>
-          <p className="text-sm text-gray-500">Upload a photo to detect diseases instantly</p>
+          <p className="text-sm text-gray-500">Upload a photo, then click Detect Disease</p>
         </div>
       </div>
 
-      {!preview ? (
+      {/* Drop zone — shown when no image selected */}
+      {!preview && (
         <div
           {...getRootProps()}
           className={`upload-zone text-center ${isDragActive ? 'drag-over' : ''}`}
@@ -80,22 +98,91 @@ function DiseaseUploadSection({ onScanComplete }) {
             <span className="bg-green-100 text-green-700 text-xs font-medium px-3 py-1.5 rounded-lg">WEBP</span>
           </div>
         </div>
-      ) : (
-        <div className="relative">
-          <img src={preview} alt="Crop preview" className="w-full h-56 object-cover rounded-2xl" />
-          {!uploading && !analyzing && (
-            <button onClick={clearPreview} className="absolute top-3 right-3 w-8 h-8 bg-white/90 rounded-full flex items-center justify-center shadow hover:bg-red-50">
-              <X className="w-4 h-4 text-gray-700" />
-            </button>
-          )}
-          {(uploading || analyzing) && (
-            <div className="absolute inset-0 bg-black/50 rounded-2xl flex items-center justify-center">
-              <div className="text-center text-white">
-                <div className="w-10 h-10 border-4 border-white border-t-transparent rounded-full animate-spin mx-auto mb-3" />
-                <p className="font-medium text-sm">{uploading ? 'Uploading...' : 'AI Analyzing...'}</p>
+      )}
+
+      {/* Image preview + action buttons */}
+      {preview && (
+        <div className="space-y-4">
+          <div className="relative">
+            <img src={preview} alt="Crop preview" className="w-full h-56 object-cover rounded-2xl" />
+
+            {/* Busy overlay */}
+            {isBusy && (
+              <div className="absolute inset-0 bg-black/55 rounded-2xl flex items-center justify-center">
+                <div className="text-center text-white">
+                  <div className="w-10 h-10 border-4 border-white border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+                  <p className="font-semibold text-sm">
+                    {uploading ? 'Uploading image...' : '🤖 AI Analyzing...'}
+                  </p>
+                  <p className="text-white/60 text-xs mt-1">
+                    {analyzing ? 'HuggingFace model running' : ''}
+                  </p>
+                </div>
               </div>
+            )}
+
+            {/* Done badge */}
+            {done && !isBusy && (
+              <div className="absolute top-3 left-3 bg-green-500 text-white text-xs font-bold px-3 py-1 rounded-full flex items-center gap-1">
+                <CheckCircle2 className="w-3 h-3" /> Analysis Complete
+              </div>
+            )}
+
+            {/* Clear button */}
+            {!isBusy && (
+              <button
+                onClick={reset}
+                className="absolute top-3 right-3 w-8 h-8 bg-white/90 rounded-full flex items-center justify-center shadow hover:bg-red-50 transition-colors"
+                title="Remove image"
+              >
+                <X className="w-4 h-4 text-gray-700" />
+              </button>
+            )}
+          </div>
+
+          {/* Error message */}
+          {error && (
+            <div className="bg-red-50 border border-red-200 rounded-xl p-3 flex items-start gap-2">
+              <AlertTriangle className="w-4 h-4 text-red-500 mt-0.5 flex-shrink-0" />
+              <p className="text-red-700 text-sm">{error}</p>
             </div>
           )}
+
+          {/* Action buttons */}
+          <div className="flex gap-3">
+            {!done ? (
+              <motion.button
+                id="detect-disease-btn"
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={handleDetect}
+                disabled={isBusy}
+                className="flex-1 bg-gradient-to-r from-green-600 to-emerald-500 text-white font-bold py-3 px-6 rounded-xl flex items-center justify-center gap-2 shadow-lg shadow-green-200 disabled:opacity-60 disabled:cursor-not-allowed transition-all"
+              >
+                {isBusy ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    {uploading ? 'Uploading...' : 'Analyzing...'}
+                  </>
+                ) : (
+                  <>
+                    <Brain className="w-4 h-4" />
+                    Detect Disease
+                  </>
+                )}
+              </motion.button>
+            ) : (
+              <motion.button
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={reset}
+                className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold py-3 px-6 rounded-xl flex items-center justify-center gap-2 transition-all"
+              >
+                <Upload className="w-4 h-4" />
+                Scan Another Image
+              </motion.button>
+            )}
+          </div>
         </div>
       )}
     </div>
