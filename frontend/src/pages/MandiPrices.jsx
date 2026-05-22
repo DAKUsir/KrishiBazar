@@ -7,6 +7,36 @@ import {
 } from 'lucide-react'
 import api from '../lib/api'
 
+// Major Indian agricultural states and their key districts
+const STATE_DISTRICTS = {
+  'Andhra Pradesh': ['Nellore', 'Guntur', 'Vijayawada', 'Kurnool', 'Visakhapatnam'],
+  'Gujarat': ['Rajkot', 'Ahmedabad', 'Surat', 'Vadodara', 'Mehsana'],
+  'Haryana': ['Karnal', 'Hisar', 'Ambala', 'Rohtak', 'Sirsa'],
+  'Karnataka': ['Bengaluru', 'Davanagere', 'Belagavi', 'Mysuru', 'Tumakuru', 'Kolar'],
+  'Madhya Pradesh': ['Indore', 'Bhopal', 'Jabalpur', 'Ujjain', 'Gwalior'],
+  'Maharashtra': ['Pune', 'Nashik', 'Nagpur', 'Mumbai', 'Solapur', 'Kolhapur'],
+  'Punjab': ['Ludhiana', 'Amritsar', 'Jalandhar', 'Patiala', 'Bathinda'],
+  'Rajasthan': ['Jaipur', 'Jodhpur', 'Udaipur', 'Kota', 'Sri Ganganagar'],
+  'Uttar Pradesh': ['Agra', 'Lucknow', 'Kanpur', 'Varanasi', 'Meerut', 'Bareilly']
+}
+
+// Major agricultural commodities
+const COMMODITIES = [
+  'Tomato',
+  'Potato',
+  'Onion',
+  'Wheat',
+  'Rice',
+  'Cotton',
+  'Maize',
+  'Mustard',
+  'Soybean',
+  'Sugarcane',
+  'Garlic',
+  'Ginger',
+  'Apple'
+]
+
 export default function MandiPrices() {
   const [commodity, setCommodity] = useState('')
   const [state, setState] = useState('')
@@ -109,37 +139,57 @@ You are an agricultural market analyst. Give simple farmer-friendly advice:
           <div>
             <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Commodity Name</label>
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4.5 h-4.5 text-gray-400" />
-              <input
-                type="text"
-                placeholder="e.g. Tomato, Wheat, Paddy..."
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4.5 h-4.5 text-gray-400 pointer-events-none" />
+              <select
                 value={commodity}
                 onChange={(e) => setCommodity(e.target.value)}
-                className="w-full pl-10 pr-4 py-2.5 text-sm rounded-xl border border-gray-200 focus:outline-none focus:border-green-500 bg-gray-50/50 transition-all font-medium"
-              />
+                className="w-full pl-10 pr-10 py-2.5 text-sm rounded-xl border border-gray-200 focus:outline-none focus:border-green-500 bg-gray-50/50 transition-all font-medium appearance-none cursor-pointer"
+              >
+                <option value="">All Commodities</option>
+                {COMMODITIES.map((c) => (
+                  <option key={c} value={c}>{c}</option>
+                ))}
+              </select>
+              <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400 text-xs">▼</div>
             </div>
           </div>
 
           <div>
             <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">State</label>
-            <input
-              type="text"
-              placeholder="e.g. Karnataka, Punjab..."
-              value={state}
-              onChange={(e) => setState(e.target.value)}
-              className="w-full px-4 py-2.5 text-sm rounded-xl border border-gray-200 focus:outline-none focus:border-green-500 bg-gray-50/50 transition-all font-medium"
-            />
+            <div className="relative">
+              <select
+                value={state}
+                onChange={(e) => {
+                  setState(e.target.value)
+                  setDistrict('') // Reset district when state changes
+                }}
+                className="w-full px-4 pr-10 py-2.5 text-sm rounded-xl border border-gray-200 focus:outline-none focus:border-green-500 bg-gray-50/50 transition-all font-medium appearance-none cursor-pointer"
+              >
+                <option value="">All States</option>
+                {Object.keys(STATE_DISTRICTS).map((s) => (
+                  <option key={s} value={s}>{s}</option>
+                ))}
+              </select>
+              <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400 text-xs">▼</div>
+            </div>
           </div>
 
           <div>
             <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">District</label>
-            <input
-              type="text"
-              placeholder="e.g. Ludhiana, Nashik..."
-              value={district}
-              onChange={(e) => setDistrict(e.target.value)}
-              className="w-full px-4 py-2.5 text-sm rounded-xl border border-gray-200 focus:outline-none focus:border-green-500 bg-gray-50/50 transition-all font-medium"
-            />
+            <div className="relative">
+              <select
+                value={district}
+                onChange={(e) => setDistrict(e.target.value)}
+                disabled={!state}
+                className="w-full px-4 pr-10 py-2.5 text-sm rounded-xl border border-gray-200 focus:outline-none focus:border-green-500 bg-gray-50/50 transition-all font-medium appearance-none cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
+              >
+                <option value="">{state ? 'All Districts' : 'Select a State first'}</option>
+                {state && STATE_DISTRICTS[state]?.map((d) => (
+                  <option key={d} value={d}>{d}</option>
+                ))}
+              </select>
+              <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400 text-xs">▼</div>
+            </div>
           </div>
 
           <div className="flex gap-3">
