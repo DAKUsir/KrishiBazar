@@ -1,0 +1,14 @@
+node_modules/
+.env
+dist/
+build/
+*.log
+.DS_Store
+backend/uploads/*
+!backend/uploads/.gitkeep
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+.python-version
