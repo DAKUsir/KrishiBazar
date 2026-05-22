@@ -1,0 +1,28 @@
+{
+  "name": "farmshield-marketplace",
+  "version": "1.0.0",
+  "description": "FarmShield AI Public Selling Marketplace",
+  "main": "server.js",
+  "type": "module",
+  "scripts": {
+    "start": "node server.js",
+    "server": "nodemon server.js",
+    "client": "cd frontend && npm run dev",
+    "dev": "concurrently \"npm run server\" \"npm run client\"",
+    "setup": "npm install && cd frontend && npm install",
+    "build": "cd frontend && npm run build"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "mongoose": "^8.3.4",
+    "multer": "^1.4.5-lts.1",
+    "socket.io": "^4.7.5",
+    "twilio": "^4.23.0"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2",
+    "nodemon": "^3.1.0"
+  }
+}
