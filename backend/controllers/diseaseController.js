@@ -58,10 +58,21 @@ function severityFromDisease(disease) {
 }
 
 async function runHFDetection(imagePath) {
-  const client  = await getHFClient();
-  const data    = fs.readFileSync(imagePath);
+  const client = await getHFClient();
+
+  // Detect MIME type from extension — HF client requires a content type
+  const ext = path.extname(imagePath).toLowerCase();
+  const mimeMap = {
+    '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg',
+    '.png': 'image/png',  '.webp': 'image/webp',
+    '.gif': 'image/gif',
+  };
+  const mimeType = mimeMap[ext] || 'image/jpeg';
+  const buffer   = fs.readFileSync(imagePath);
+  const blob     = new Blob([buffer], { type: mimeType });
+
   const results = await client.imageClassification({
-    data,
+    data:     blob,
     model:    HF_MODEL,
     provider: 'auto',
   });
