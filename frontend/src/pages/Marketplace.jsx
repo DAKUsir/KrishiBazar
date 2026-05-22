@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   ShoppingBag, Plus, Search, Star, Phone, MessageSquare,
   Mail, TrendingUp, TrendingDown, Package, Leaf, ArrowUpRight,
-  Filter, MapPin, Calendar, BarChart2, X, ChevronRight
+  Filter, MapPin, Calendar, BarChart2, X, ChevronRight, Sparkles
 } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
 import api from '../lib/api'
@@ -375,6 +375,12 @@ export default function Marketplace() {
     enabled: tab === 'sell',
   })
 
+  const { data: aiRecsData } = useQuery({
+    queryKey: ['ai-recommendations'],
+    queryFn: () => api.get('/market/recommendations').then(r => r.data),
+    enabled: tab === 'buy',
+  })
+
   return (
     <div className="p-6">
       {/* Tabs */}
@@ -421,6 +427,64 @@ export default function Marketplace() {
               </button>
             ))}
           </div>
+
+          {/* AI-Powered Treatment Recommendations banner */}
+          {aiRecsData?.recommendations?.length > 0 && (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="bg-gradient-to-r from-purple-900/95 via-indigo-950/95 to-blue-950/95 border border-purple-500/30 rounded-3xl p-6 text-white shadow-xl backdrop-blur-md mb-8 relative overflow-hidden"
+            >
+              <div className="absolute top-0 right-0 w-64 h-64 bg-purple-500/10 rounded-full blur-3xl -z-10" />
+              <div className="absolute bottom-0 left-0 w-48 h-48 bg-blue-500/10 rounded-full blur-2xl -z-10" />
+              
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6 pb-4 border-b border-white/10">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2 bg-purple-500/20 text-purple-200 text-xs font-bold px-3 py-1 rounded-full w-fit border border-purple-500/30">
+                    <Sparkles className="w-3.5 h-3.5 animate-pulse text-purple-400" /> Krishi AI Treatment Advisor
+                  </div>
+                  <h3 className="text-xl font-bold font-display tracking-tight mt-2 text-white">Recommended Treatment Pack for {aiRecsData.crop}</h3>
+                  <p className="text-xs text-indigo-200/80 max-w-2xl leading-relaxed mt-1">
+                    {aiRecsData.reason.replace(/\*\*/g, '')}
+                  </p>
+                </div>
+                <div className="hidden lg:block text-5xl opacity-45">🛡️</div>
+              </div>
+
+              {/* Grid of Recommended Products */}
+              <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                {aiRecsData.recommendations.map((prod) => (
+                  <motion.div
+                    key={prod._id}
+                    whileHover={{ y: -3 }}
+                    className="bg-white/5 hover:bg-white/10 border border-white/10 hover:border-white/20 rounded-2xl p-4 flex flex-col justify-between transition-all"
+                  >
+                    <div>
+                      <div className="flex justify-between items-start mb-2">
+                        <span className="text-[10px] font-bold uppercase tracking-wider bg-purple-500/20 text-purple-200 px-2 py-0.5 rounded-md border border-purple-500/25">
+                          {prod.category}
+                        </span>
+                        <span className="text-[10px] text-gray-400">{prod.brand}</span>
+                      </div>
+                      <h4 className="font-bold text-sm text-white line-clamp-1 mb-1">{prod.name}</h4>
+                      <p className="text-[11px] text-indigo-100/70 line-clamp-2 leading-relaxed mb-3">
+                        {prod.description}
+                      </p>
+                    </div>
+                    <div>
+                      <div className="flex items-baseline justify-between border-t border-white/5 pt-2.5">
+                        <span className="text-sm font-extrabold text-green-300">{formatCurrency(prod.price)}</span>
+                        {prod.unit && <span className="text-[10px] text-gray-400">/{prod.unit}</span>}
+                      </div>
+                      <button className="w-full mt-2 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white text-xs font-bold py-2 rounded-xl transition-all shadow-md active:scale-95">
+                        Quick Buy
+                      </button>
+                    </div>
+                  </motion.div>
+                ))}
+              </div>
+            </motion.div>
+          )}
 
           {productsLoading ? (
             <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
