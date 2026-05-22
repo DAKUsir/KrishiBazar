@@ -1,7 +1,8 @@
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { useQuery } from '@tanstack/react-query'
-import { Search, BookOpen, Thermometer, Droplets, Cloud, Leaf, ChevronRight, X, Sprout } from 'lucide-react'
+import { Search, BookOpen, Thermometer, Droplets, Cloud, Leaf, ChevronRight, X, Sprout, Brain } from 'lucide-react'
 import api from '../lib/api'
 
 function CropCard({ crop, onClick }) {
@@ -33,7 +34,12 @@ function CropCard({ crop, onClick }) {
 
 function CropDetail({ crop, onClose }) {
   if (!crop) return null
+  const navigate = useNavigate()
   const stages = crop.stages || []
+  
+  const isPredictable = ['wheat', 'rice', 'paddy', 'maize', 'corn', 'potato', 'tomato'].some(name => 
+    crop.name.toLowerCase().includes(name)
+  )
 
   return (
     <motion.div
@@ -57,10 +63,20 @@ function CropDetail({ crop, onClose }) {
             </button>
           </div>
           <span className="absolute top-8 right-12 text-7xl">{crop.emoji || '🌱'}</span>
-          <div className="relative z-10 text-white">
+          <div className="relative z-10 text-white flex flex-col items-start gap-1">
             <h2 className="text-3xl font-bold font-display">{crop.name}</h2>
             <p className="text-green-100 italic text-sm">{crop.scientificName}</p>
-            <span className="bg-white/20 text-white text-xs px-3 py-1 rounded-full mt-2 inline-block">{crop.category}</span>
+            <div className="flex gap-2 items-center mt-2 flex-wrap">
+              <span className="bg-white/20 text-white text-xs px-3 py-1 rounded-full">{crop.category}</span>
+              {isPredictable && (
+                <button
+                  onClick={() => navigate(`/yield-predictor?crop=${crop.name}`)}
+                  className="bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold px-3 py-1.5 rounded-full flex items-center gap-1.5 shadow-sm transition-all active:scale-[0.98]"
+                >
+                  <Brain className="w-3.5 h-3.5" /> Predict Yield
+                </button>
+              )}
+            </div>
           </div>
         </div>
 

@@ -52,14 +52,55 @@ const getMockWeather = (state = 'Karnataka') => ({
 
 const weatherService = {
   async getWeather({ state, district, lat, lon }) {
-    if (!process.env.OPENWEATHER_API_KEY || process.env.OPENWEATHER_API_KEY === 'your_openweather_api_key_here') {
+    const apiKey = process.env.OPENWEATHER_API_KEY;
+
+    if (!apiKey || apiKey === 'your_openweather_api_key_here') {
       return getMockWeather(state);
+    }
+
+    // Direct HTTP URL handling (e.g. Open-Meteo configured as key)
+    if (apiKey.startsWith('http://') || apiKey.startsWith('https://')) {
+      try {
+        console.log('Fetching live weather data from Open-Meteo:', apiKey);
+        const response = await axios.get(apiKey, { timeout: 1200 });
+        const data = response.data;
+        
+        let currentTemp = 28;
+        let currentRain = 0;
+        
+        if (data.hourly) {
+          currentTemp = Math.round(data.hourly.temperature_2m?.[0] || 28);
+          currentRain = data.hourly.precipitation?.[0] || 0;
+        }
+
+        return {
+          location: { city: 'Bengaluru', country: 'IN', state: state || 'Karnataka' },
+          current: {
+            temperature: currentTemp,
+            feelsLike: currentTemp + 2,
+            humidity: 70,
+            windSpeed: 12,
+            rainfall: currentRain,
+            condition: currentRain > 0 ? 'Rainy' : 'Partly Cloudy',
+            icon: '02d',
+            updatedAt: new Date().toISOString(),
+          },
+          agriculture: {
+            diseaseRisk: currentRain > 1 ? 'High' : 'Low',
+            diseaseRiskReason: currentRain > 1 ? 'Leaf wetness from recent rain increases fungal infection risk' : 'Dry conditions suitable for general planting',
+            irrigationRecommendation: currentRain > 1 ? 'Postpone irrigation' : 'Standard watering recommended',
+          }
+        };
+      } catch (openMeteoError) {
+        console.warn('Open-Meteo fetch failed, using mock weather fallback:', openMeteoError.message);
+        return getMockWeather(state);
+      }
     }
 
     try {
       const params = lat && lon
-        ? { lat, lon, appid: process.env.OPENWEATHER_API_KEY, units: 'metric' }
-        : { q: `${district || ''},${state || 'Karnataka'},IN`, appid: process.env.OPENWEATHER_API_KEY, units: 'metric' };
+        ? { lat, lon, appid: apiKey, units: 'metric' }
+        : { q: `${district || ''},${state || 'Karnataka'},IN`, appid: apiKey, units: 'metric' };
 
       const [current, forecast] = await Promise.all([
         axios.get(`${OPENWEATHER_API}/weather`, { params }),
@@ -86,7 +127,7 @@ const weatherService = {
         },
       };
     } catch (error) {
-      console.error('Weather API error:', error.message);
+      console.warn('OpenWeather API warning (401 or limits), returning mock weather data:', error.message);
       return getMockWeather(state);
     }
   },

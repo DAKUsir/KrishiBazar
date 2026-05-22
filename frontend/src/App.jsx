@@ -13,6 +13,8 @@ import CropLibrary from './pages/CropLibrary'
 import Community from './pages/Community'
 import Marketplace from './pages/Marketplace'
 import AIAssistant from './pages/AIAssistant'
+import MandiPrices from './pages/MandiPrices'
+import YieldPredictor from './pages/YieldPredictor'
 
 function App() {
   return (
@@ -31,6 +33,8 @@ function App() {
             <Route path="/crops" element={<CropLibrary />} />
             <Route path="/community" element={<Community />} />
             <Route path="/marketplace" element={<Marketplace />} />
+            <Route path="/mandi" element={<MandiPrices />} />
+            <Route path="/yield-predictor" element={<YieldPredictor />} />
             <Route path="/assistant" element={<AIAssistant />} />
           </Route>
         </Route>

@@ -2,13 +2,15 @@ import { NavLink, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import {
   LayoutDashboard, BookOpen, Users, ShoppingBag,
-  Bot, LogOut, Leaf, ChevronRight
+  Bot, LogOut, Leaf, ChevronRight, TrendingUp, Brain
 } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
 
 const navItems = [
   { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard', description: 'Crop monitoring' },
   { to: '/crops', icon: BookOpen, label: 'Crop Library', description: 'Encyclopedia' },
+  { to: '/yield-predictor', icon: Brain, label: 'Yield Predictor', description: 'AI harvest forecast' },
+  { to: '/mandi', icon: TrendingUp, label: 'Mandi Prices', description: 'Real-time rates' },
   { to: '/community', icon: Users, label: 'Community', description: 'Farmer network' },
   { to: '/marketplace', icon: ShoppingBag, label: 'Marketplace', description: 'Buy & Sell' },
   { to: '/assistant', icon: Bot, label: 'Krishi AI', description: 'AI assistant' },
