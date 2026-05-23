@@ -10,17 +10,19 @@ async function getHFClient() {
   if (!_hfClient) {
     const mod = await import('@huggingface/inference');
     // Handle different export shapes across package versions
-    const InferenceClient =
+    const ClientClass =
       mod.InferenceClient ||
+      mod.HfInference ||
       mod.default?.InferenceClient ||
+      mod.default?.HfInference ||
       mod.default;
 
-    if (!InferenceClient || typeof InferenceClient !== 'function') {
+    if (!ClientClass || typeof ClientClass !== 'function') {
       throw new Error(
         `Could not load InferenceClient. Module keys: ${Object.keys(mod).join(', ')}`
       );
     }
-    _hfClient = new InferenceClient(process.env.HF_TOKEN);
+    _hfClient = new ClientClass(process.env.HF_TOKEN);
   }
   return _hfClient;
 }
