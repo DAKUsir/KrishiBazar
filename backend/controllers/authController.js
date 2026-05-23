@@ -16,10 +16,11 @@ const googleCallback = async (req, res) => {
   try {
     const token = generateToken(req.user._id);
 
-    // Relative redirect to the frontend route on the same domain
-    res.redirect(`/auth/callback?token=${token}&onboarded=${req.user.isOnboarded}`);
+    const clientUrl = process.env.CLIENT_URL || 'https://krishibazar-1.onrender.com';
+    res.redirect(`${clientUrl}/auth/callback?token=${token}&onboarded=${req.user.isOnboarded}`);
   } catch (error) {
-    res.redirect(`/auth?error=oauth_failed`);
+    const clientUrl = process.env.CLIENT_URL || 'https://krishibazar-1.onrender.com';
+    res.redirect(`${clientUrl}/auth?error=oauth_failed`);
   }
 };
 
