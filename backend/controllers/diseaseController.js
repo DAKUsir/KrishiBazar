@@ -2,6 +2,7 @@ const fs   = require('fs');
 const path = require('path');
 const Scan = require('../models/Scan');
 const Groq = require('groq-sdk');
+const axios = require('axios');
 
 // ── Clients ──────────────────────────────────────────────────────────────────
 // @huggingface/inference is ESM-only — use dynamic import
@@ -60,9 +61,6 @@ function severityFromDisease(disease) {
 }
 
 async function runHFDetection(imagePath) {
-  const client = await getHFClient();
-
-  // Detect MIME type from extension — HF client requires a content type
   const ext = path.extname(imagePath).toLowerCase();
   const mimeMap = {
     '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg',
@@ -71,16 +69,77 @@ async function runHFDetection(imagePath) {
   };
   const mimeType = mimeMap[ext] || 'image/jpeg';
   const buffer   = fs.readFileSync(imagePath);
-  const blob     = new Blob([buffer], { type: mimeType });
+  
+  let results;
+  let errorMsg = "";
 
-  const results = await client.imageClassification({
-    data:     blob,
-    model:    HF_MODEL,
-    provider: 'auto',
-  });
+  // Strategy 1: Use native fetch via @huggingface/inference (Works locally)
+  try {
+    const client = await getHFClient();
+    const blob = new Blob([buffer], { type: mimeType });
+    
+    let retries = 5;
+    while (retries > 0) {
+      try {
+        const res = await client.imageClassification({
+          data: blob,
+          model: HF_MODEL,
+          provider: 'auto',
+        });
+        results = res;
+        break;
+      } catch (err) {
+        if (err.message && err.message.toLowerCase().includes('currently loading')) {
+          console.log(`HF Model is loading (fetch). Retrying in 10s... (${retries} left)`);
+          await new Promise(r => setTimeout(r, 10000));
+          retries--;
+        } else {
+          throw err;
+        }
+      }
+    }
+  } catch (err) {
+    errorMsg = err.message;
+    console.warn(`[HF Fetch Strategy Failed] ${err.message}. Falling back to Axios...`);
+    results = null;
+  }
+
+  // Strategy 2: Use Axios (Works on Render where undici/fetch fails due to IPv6)
+  if (!results) {
+    try {
+      const url = `https://api-inference.huggingface.co/models/${HF_MODEL}`;
+      let retries = 5;
+      while (retries > 0) {
+        try {
+          const response = await axios.post(url, buffer, {
+            headers: {
+              'Authorization': `Bearer ${process.env.HF_TOKEN}`,
+              'Content-Type': mimeType,
+            },
+          });
+          results = response.data;
+          break;
+        } catch (err) {
+          if (err.response && err.response.status === 503) {
+            console.log(`HF Model is loading (axios). Retrying in 10s... (${retries} left)`);
+            await new Promise(r => setTimeout(r, 10000));
+            retries--;
+          } else {
+            throw new Error(err.response ? JSON.stringify(err.response.data) : err.message);
+          }
+        }
+      }
+    } catch (err) {
+      throw new Error(`Both strategies failed. Fetch error: ${errorMsg}. Axios error: ${err.message}`);
+    }
+  }
+
+  if (!results || results.length === 0) {
+    throw new Error("Failed to get results from HuggingFace after multiple retries.");
+  }
 
   // Log all predictions like the HF demo
-  console.log('\n── HF Model Predictions ──');
+  console.log('\\n── HF Model Predictions ──');
   results.forEach(r => console.log(`  ${r.label.padEnd(55)} ${r.score.toFixed(3)}`));
   console.log();
 
