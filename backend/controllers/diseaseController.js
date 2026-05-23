@@ -117,7 +117,6 @@ async function runHFDetection(imagePath) {
               'Authorization': `Bearer ${process.env.HF_TOKEN}`,
               'Content-Type': mimeType,
             },
-            httpsAgent: new https.Agent({ family: 4 })
           });
           results = response.data;
           break;
