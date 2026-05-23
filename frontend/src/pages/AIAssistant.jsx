@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   Send, Mic, MicOff, Image as ImageIcon, Bot, User, Plus,
-  Volume2, VolumeX, Trash2, ChevronDown, Sparkles, X
+  Volume2, VolumeX, Trash2, ChevronDown, Sparkles, X, Headphones
 } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
 import api from '../lib/api'
@@ -76,9 +76,12 @@ export default function AIAssistant() {
   const [sessionId] = useState(() => Math.random().toString(36).substring(2))
   const [isListening, setIsListening] = useState(false)
   const [isSpeaking, setIsSpeaking] = useState(false)
+  const [isVoiceMode, setIsVoiceMode] = useState(false)
   const [loading, setLoading] = useState(false)
   const bottomRef = useRef(null)
   const recognitionRef = useRef(null)
+  const isVoiceModeRef = useRef(false)
+  const voiceTranscriptRef = useRef('')
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -90,50 +93,119 @@ export default function AIAssistant() {
     const userMsg = { role: 'user', content: text, timestamp: new Date() }
     setMessages(prev => [...prev, userMsg])
     setInput('')
+    voiceTranscriptRef.current = ''
     setLoading(true)
 
     try {
       const { data } = await api.post('/chat', { message: text, sessionId })
       setMessages(prev => [...prev, { role: 'assistant', content: data.message, timestamp: new Date() }])
+      
+      if (isVoiceModeRef.current) {
+        speakMessage(data.message)
+      }
     } catch (err) {
+      const errMsg = "I'm having trouble connecting right now. Please check your internet connection and try again."
       setMessages(prev => [...prev, {
         role: 'assistant',
-        content: "I'm having trouble connecting right now. Please check your internet connection and try again.",
+        content: errMsg,
         timestamp: new Date()
       }])
+      if (isVoiceModeRef.current) {
+        speakMessage(errMsg)
+      }
     } finally {
       setLoading(false)
     }
   }
 
-  const toggleVoiceInput = () => {
+  const startListening = () => {
     if (!('webkitSpeechRecognition' in window || 'SpeechRecognition' in window)) {
       alert('Voice input not supported in your browser')
+      setIsVoiceMode(false)
+      isVoiceModeRef.current = false
       return
     }
 
-    if (isListening) {
-      recognitionRef.current?.stop()
-      setIsListening(false)
-      return
-    }
+    if (recognitionRef.current) recognitionRef.current.stop()
 
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition
     const recognition = new SpeechRecognition()
     recognition.lang = user?.language === 'Hindi' ? 'hi-IN' : user?.language === 'Kannada' ? 'kn-IN' : user?.language === 'Tamil' ? 'ta-IN' : user?.language === 'Telugu' ? 'te-IN' : 'en-IN'
     recognition.continuous = false
-    recognition.interimResults = false
+    recognition.interimResults = true
+
+    let finalTranscript = ''
 
     recognition.onresult = (e) => {
-      const transcript = e.results[0][0].transcript
-      setInput(transcript)
+      let interim = ''
+      for (let i = e.resultIndex; i < e.results.length; ++i) {
+        if (e.results[i].isFinal) {
+          finalTranscript += e.results[i][0].transcript
+        } else {
+          interim += e.results[i][0].transcript
+        }
+      }
+      const text = finalTranscript + interim
+      setInput(text)
+      voiceTranscriptRef.current = text
     }
-    recognition.onend = () => setIsListening(false)
-    recognition.onerror = () => setIsListening(false)
+    
+    recognition.onend = () => {
+      setIsListening(false)
+      if (isVoiceModeRef.current) {
+        const text = voiceTranscriptRef.current.trim()
+        if (text) {
+          sendMessage(text)
+        } else {
+          setIsVoiceMode(false)
+          isVoiceModeRef.current = false
+        }
+      }
+    }
+    
+    recognition.onerror = () => {
+      setIsListening(false)
+      if (isVoiceModeRef.current) {
+         setIsVoiceMode(false)
+         isVoiceModeRef.current = false
+      }
+    }
 
     recognition.start()
     recognitionRef.current = recognition
     setIsListening(true)
+  }
+
+  const toggleManualMic = () => {
+    if (isVoiceMode) {
+      setIsVoiceMode(false)
+      isVoiceModeRef.current = false
+      window.speechSynthesis.cancel()
+    }
+    if (isListening) {
+      recognitionRef.current?.stop()
+      setIsListening(false)
+    } else {
+      setInput('')
+      voiceTranscriptRef.current = ''
+      startListening()
+    }
+  }
+
+  const toggleVoiceMode = () => {
+    const nextMode = !isVoiceMode
+    setIsVoiceMode(nextMode)
+    isVoiceModeRef.current = nextMode
+    
+    if (nextMode) {
+      setInput('')
+      voiceTranscriptRef.current = ''
+      window.speechSynthesis.cancel()
+      startListening()
+    } else {
+      if (isListening) recognitionRef.current?.stop()
+      window.speechSynthesis.cancel()
+    }
   }
 
   const speakMessage = (text) => {
@@ -142,7 +214,14 @@ export default function AIAssistant() {
       const utterance = new SpeechSynthesisUtterance(text)
       utterance.lang = user?.language === 'Hindi' ? 'hi-IN' : 'en-IN'
       utterance.onstart = () => setIsSpeaking(true)
-      utterance.onend = () => setIsSpeaking(false)
+      utterance.onend = () => {
+        setIsSpeaking(false)
+        if (isVoiceModeRef.current) {
+           setInput('')
+           voiceTranscriptRef.current = ''
+           startListening()
+        }
+      }
       window.speechSynthesis.speak(utterance)
     }
   }
@@ -174,7 +253,18 @@ export default function AIAssistant() {
             </div>
           </div>
           <div className="flex gap-2">
-            {isSpeaking && (
+            <button 
+              onClick={toggleVoiceMode} 
+              className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-sm font-medium transition-colors ${
+                isVoiceMode 
+                  ? 'bg-green-100 text-green-700 border border-green-200' 
+                  : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50'
+              }`}
+            >
+              <Headphones className={`w-4 h-4 ${isVoiceMode ? 'animate-pulse' : ''}`} />
+              {isVoiceMode ? 'Voice Mode On' : 'Voice Mode'}
+            </button>
+            {isSpeaking && !isVoiceMode && (
               <button onClick={() => window.speechSynthesis.cancel()} className="p-2 rounded-xl bg-orange-100 text-orange-600">
                 <VolumeX className="w-5 h-5" />
               </button>
@@ -235,7 +325,7 @@ export default function AIAssistant() {
                 className="flex-1 bg-transparent text-sm text-gray-800 placeholder-gray-400 resize-none outline-none max-h-32"
                 style={{ minHeight: '24px' }}
               />
-              <button onClick={toggleVoiceInput} className={`p-1.5 rounded-xl transition-all ${isListening ? 'bg-red-100 text-red-500 animate-pulse' : 'text-gray-400 hover:text-green-600'}`}>
+              <button onClick={toggleManualMic} className={`p-1.5 rounded-xl transition-all ${isListening ? 'bg-red-100 text-red-500 animate-pulse' : 'text-gray-400 hover:text-green-600'}`}>
                 {isListening ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
               </button>
             </div>
