@@ -8,6 +8,7 @@ import {
 import { useAuth } from '../contexts/AuthContext'
 import api from '../lib/api'
 import { formatRelativeTime } from '../lib/utils'
+import { useTranslation } from '../lib/translations'
 
 const SUGGESTED_QUESTIONS = [
   "Will rain affect my tomato crop?",
@@ -65,6 +66,7 @@ function TypingIndicator() {
 
 export default function AIAssistant() {
   const { user } = useAuth()
+  const { t } = useTranslation()
   const [messages, setMessages] = useState([
     {
       role: 'assistant',
@@ -348,10 +350,10 @@ YOUR ROLE:
                   </div>
                   <div className="min-w-0 flex-1">
                     <span className="text-[9px] font-black tracking-widest text-[#2D6A47] uppercase block">
-                      Active Voice Telemetry
+                      {t("Active Voice Telemetry")}
                     </span>
                     <p className="text-xs text-[#111D14] font-semibold italic mt-0.5 max-w-[240px] sm:max-w-md truncate">
-                      {input || 'Listening for your voice...'}
+                      {input || t('Listening for your voice...')}
                     </p>
                   </div>
                 </div>
@@ -374,7 +376,7 @@ YOUR ROLE:
                 value={input}
                 onChange={e => setInput(e.target.value)}
                 onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(input) } }}
-                placeholder={`Ask about your ${user?.crops?.[0] || 'crops'}...`}
+                placeholder={t("Type a message...")}
                 rows={1}
                 className="flex-1 bg-transparent text-sm text-gray-800 placeholder-gray-400 resize-none outline-none max-h-32"
                 style={{ minHeight: '24px' }}
@@ -398,10 +400,10 @@ YOUR ROLE:
 
       {/* Context panel */}
       <div className="w-72 bg-white border-l border-gray-100 p-5 hidden xl:block overflow-y-auto custom-scrollbar">
-        <h4 className="font-bold text-gray-900 font-display mb-4">Your Farm Context</h4>
+        <h4 className="font-bold text-gray-900 font-display mb-4">{t('Your Farm Context')}</h4>
         <div className="space-y-3">
           <div className="bg-green-50 rounded-xl p-3">
-            <p className="text-xs text-green-600 font-semibold mb-1">Crops</p>
+            <p className="text-xs text-green-600 font-semibold mb-1">{t('Crops')}</p>
             <div className="flex flex-wrap gap-1.5">
               {(user?.crops || ['No crops added']).map(c => (
                 <span key={c} className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full">{c}</span>
@@ -409,14 +411,14 @@ YOUR ROLE:
             </div>
           </div>
           <div className="bg-blue-50 rounded-xl p-3">
-            <p className="text-xs text-blue-600 font-semibold mb-1">Location</p>
+            <p className="text-xs text-blue-600 font-semibold mb-1">{t('Location')}</p>
             <p className="text-sm font-medium text-gray-900">
               {user?.farmDetails?.district && `${user.farmDetails.district}, `}{user?.farmDetails?.state || 'Not set'}
             </p>
           </div>
           <div className="bg-orange-50 rounded-xl p-3">
-            <p className="text-xs text-orange-600 font-semibold mb-1">Farm Size</p>
-            <p className="text-sm font-medium text-gray-900">{user?.farmDetails?.farmArea || '?'} acres</p>
+            <p className="text-xs text-orange-600 font-semibold mb-1">{t('Farm Size')}</p>
+            <p className="text-sm font-medium text-gray-900">{user?.farmDetails?.farmArea || '?'} {t('acres')}</p>
           </div>
           <div className="bg-purple-50 rounded-xl p-3">
             <p className="text-xs text-purple-600 font-semibold mb-1">Soil Type</p>

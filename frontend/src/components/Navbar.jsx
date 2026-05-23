@@ -1,19 +1,23 @@
 import { Bell, Search, Menu } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
 import { useLocation } from 'react-router-dom'
+import { useTranslation } from '../lib/translations'
 
 const pageTitles = {
-  '/dashboard': { title: 'Smart Dashboard', subtitle: 'AI-powered crop monitoring' },
-  '/crops': { title: 'Crop Library', subtitle: 'Complete crop encyclopedia' },
-  '/community': { title: 'Community', subtitle: 'Connect with farmers' },
-  '/marketplace': { title: 'Marketplace', subtitle: 'Buy, sell & trade' },
-  '/assistant': { title: 'Krishi AI Assistant', subtitle: 'Your personal farming AI' },
+  '/dashboard': { title: 'Dashboard', subtitle: 'Crop monitoring' },
+  '/crops': { title: 'Crop Library', subtitle: 'Encyclopedia' },
+  '/yield-predictor': { title: 'Yield Predictor', subtitle: 'AI harvest forecast' },
+  '/mandi': { title: 'Mandi Prices', subtitle: 'Real-time rates' },
+  '/community': { title: 'Community', subtitle: 'Farmer network' },
+  '/marketplace': { title: 'Marketplace', subtitle: 'Buy & Sell' },
+  '/assistant': { title: 'Krishi AI', subtitle: 'AI assistant' },
   '/onboarding': { title: 'Setup Your Farm', subtitle: 'Tell us about your farm' },
 }
 
 export default function Navbar({ onMenuClick }) {
   const { user } = useAuth()
   const location = useLocation()
+  const { t } = useTranslation()
   const page = pageTitles[location.pathname] || { title: 'Krishi Bazar', subtitle: '' }
 
   return (
@@ -27,8 +31,8 @@ export default function Navbar({ onMenuClick }) {
           <Menu className="w-5.5 h-5.5" />
         </button>
         <div>
-          <h2 className="text-lg md:text-xl font-bold text-gray-900 font-display leading-tight">{page.title}</h2>
-          <p className="text-xs md:text-sm text-gray-500 leading-tight">{page.subtitle}</p>
+          <h2 className="text-lg md:text-xl font-bold text-gray-900 font-display leading-tight">{t(page.title)}</h2>
+          <p className="text-xs md:text-sm text-gray-500 leading-tight">{t(page.subtitle)}</p>
         </div>
       </div>
 
@@ -38,7 +42,7 @@ export default function Navbar({ onMenuClick }) {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
           <input
             type="text"
-            placeholder="Search crops, diseases..."
+            placeholder={t("Search crops, diseases...")}
             className="pl-10 pr-4 py-2 rounded-xl bg-gray-50 border border-gray-200 text-sm
                        focus:outline-none focus:border-green-400 focus:bg-white transition-all w-64"
           />
