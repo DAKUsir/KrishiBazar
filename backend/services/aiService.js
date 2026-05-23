@@ -35,6 +35,66 @@ const aiService = {
 
   async chat({ message, imageUrl, sessionId, userProfile, history }) {
     try {
+      const apiKey = process.env.VITE_GEMINI_API || process.env.GEMINI_API_KEY;
+      if (apiKey) {
+        // Query Gemini directly from the backend!
+        const crops = userProfile.crops?.join(', ') || 'various crops';
+        const farmDetails = userProfile.farmDetails || {};
+        const state = farmDetails.state || 'India';
+        const soil = farmDetails.soilType || 'Mixed';
+        const area = farmDetails.farmArea || 'unknown';
+        const language = userProfile.language || 'English';
+        const name = userProfile.name || 'Farmer';
+
+        const systemPrompt = `You are Krishi AI, a highly specialized and personalized AI farming assistant for Indian farmers.
+
+FARMER PROFILE:
+- Name: ${name}
+- Location: ${state}, India
+- Crops: ${crops}
+- Farm Area: ${area} acres
+- Soil Type: ${soil}
+- Preferred Language: ${language}
+
+YOUR ROLE:
+- Provide hyper-personalized farming advice based on this specific farmer's profile
+- Answer questions about crop diseases, treatments, weather impact, market prices, and farming practices
+- Give practical, actionable advice using locally available products and methods
+- Use Indian agricultural context, local crop varieties, and regional farming practices
+- Reference ICAR, state agricultural universities, and proven Indian farming methods
+- Keep responses concise, practical, and easy to understand for farmers
+- If the farmer asks in Hindi or regional language, respond in that language
+- Speak politely and offer guidance with empathy as a knowledgeable agri-expert.`;
+
+        // Format history for Gemini API (alternating user/model)
+        const historyForGemini = history.map(msg => ({
+          role: msg.role === 'assistant' ? 'model' : 'user',
+          parts: [{ text: msg.content }]
+        }));
+
+        // Add current message
+        historyForGemini.push({
+          role: 'user',
+          parts: [{ text: message }]
+        });
+
+        const response = await axios.post(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`, {
+          contents: historyForGemini,
+          systemInstruction: {
+            parts: [{ text: systemPrompt }]
+          }
+        }, { 
+          headers: { 'Content-Type': 'application/json' },
+          timeout: 20000 
+        });
+
+        const responseText = response.data.candidates?.[0]?.content?.parts?.[0]?.text;
+        if (responseText) {
+          return { message: responseText };
+        }
+      }
+
+      // Fallback to python service
       const response = await axios.post(`${AI_SERVICE_URL}/chat`, {
         message, imageUrl, sessionId, userProfile, history,
       }, { timeout: 30000 });
@@ -42,7 +102,7 @@ const aiService = {
     } catch (error) {
       console.error('AI Chat error:', error.message);
       return {
-        message: `Namaste ${userProfile.name}! I'm Krishi AI, your personal farming assistant. ${message.toLowerCase().includes('rain') ? 'Based on your location and crop data, heavy rain is expected in 2 days. I recommend delaying pesticide application and ensuring proper drainage.' : 'I can help you with crop diseases, weather advice, market prices, and farming best practices. What would you like to know?'}`,
+        message: `Namaste ${userProfile.name}! I'm Krishi AI, your personal farming assistant. ${message.toLowerCase().includes('rain') ? 'Based on your location and crop data, heavy rain is expected in 2 days. I recommend delaying pesticide application and ensuring proper drainage.' : 'I can help you with crop diseases, weather advice, market prices, and farming practices. What would you like to know?'}`,
       };
     }
   },

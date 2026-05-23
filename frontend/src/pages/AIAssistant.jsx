@@ -84,6 +84,10 @@ export default function AIAssistant() {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages, loading])
 
+  useEffect(() => {
+    console.log("VITE_GEMINI_API present in frontend bundle:", !!import.meta.env.VITE_GEMINI_API);
+  }, [])
+
   const sendMessage = async (text) => {
     if (!text.trim() || loading) return
 
@@ -93,14 +97,90 @@ export default function AIAssistant() {
     setLoading(true)
 
     try {
-      const { data } = await api.post('/chat', { message: text, sessionId })
-      setMessages(prev => [...prev, { role: 'assistant', content: data.message, timestamp: new Date() }])
+      const apiKey = import.meta.env.VITE_GEMINI_API;
+      if (apiKey) {
+        // Build customized system instruction using active farmer profile details
+        const crops = user?.crops?.join(', ') || 'various crops';
+        const farmDetails = user?.farmDetails || {};
+        const state = farmDetails.state || 'India';
+        const soil = farmDetails.soilType || 'Mixed';
+        const area = farmDetails.farmArea || 'unknown';
+        const language = user?.language || 'English';
+        const name = user?.name || 'Farmer';
+
+        const systemPrompt = `You are Krishi AI, a highly specialized and personalized AI farming assistant for Indian farmers.
+
+FARMER PROFILE:
+- Name: ${name}
+- Location: ${state}, India
+- Crops: ${crops}
+- Farm Area: ${area} acres
+- Soil Type: ${soil}
+- Preferred Language: ${language}
+
+YOUR ROLE:
+- Provide hyper-personalized farming advice based on this specific farmer's profile
+- Answer questions about crop diseases, treatments, weather impact, market prices, and farming practices
+- Give practical, actionable advice using locally available products and methods
+- Use Indian agricultural context, local crop varieties, and regional farming practices
+- Reference ICAR, state agricultural universities, and proven Indian farming methods
+- Keep responses concise, practical, and easy to understand for farmers
+- If the farmer asks in Hindi or regional language, respond in that language
+- Speak politely and offer guidance with empathy as a knowledgeable agri-expert.`;
+
+        // Format conversation history for Gemini (alternating roles user/model)
+        const historyForGemini = messages.map(msg => ({
+          role: msg.role === 'assistant' ? 'model' : 'user',
+          parts: [{ text: msg.content }]
+        }));
+
+        // Add current user message
+        historyForGemini.push({
+          role: 'user',
+          parts: [{ text: text }]
+        });
+
+        // Query the Gemini 2.5 Flash model directly
+        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            contents: historyForGemini,
+            systemInstruction: {
+              parts: [{ text: systemPrompt }]
+            }
+          })
+        });
+
+        if (!response.ok) {
+          const errData = await response.json().catch(() => ({}));
+          const errMsg = errData.error?.message || `HTTP error ${response.status}`;
+          throw new Error(errMsg);
+        }
+
+        const data = await response.json();
+        const responseText = data.candidates?.[0]?.content?.parts?.[0]?.text || "I'm sorry, I encountered an issue generating a response. Please try again.";
+        setMessages(prev => [...prev, { role: 'assistant', content: responseText, timestamp: new Date() }]);
+      } else {
+        // Fallback to local server
+        const { data } = await api.post('/chat', { message: text, sessionId })
+        setMessages(prev => [...prev, { role: 'assistant', content: data.message, timestamp: new Date() }])
+      }
     } catch (err) {
-      setMessages(prev => [...prev, {
-        role: 'assistant',
-        content: "I'm having trouble connecting right now. Please check your internet connection and try again.",
-        timestamp: new Date()
-      }])
+      console.error('Chat error:', err);
+      try {
+        console.warn('Gemini failed, trying local fallback...');
+        const { data } = await api.post('/chat', { message: text, sessionId })
+        setMessages(prev => [...prev, { role: 'assistant', content: data.message, timestamp: new Date() }])
+      } catch (fallbackErr) {
+        setMessages(prev => [...prev, {
+          role: 'assistant',
+          content: `I'm having trouble connecting right now. (Error: ${err.message})`,
+          timestamp: new Date()
+        }])
+      }
     } finally {
       setLoading(false)
     }
@@ -120,14 +200,32 @@ export default function AIAssistant() {
 
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition
     const recognition = new SpeechRecognition()
-    recognition.lang = user?.language === 'Hindi' ? 'hi-IN' : user?.language === 'Kannada' ? 'kn-IN' : user?.language === 'Tamil' ? 'ta-IN' : user?.language === 'Telugu' ? 'te-IN' : 'en-IN'
-    recognition.continuous = false
-    recognition.interimResults = false
 
-    recognition.onresult = (e) => {
-      const transcript = e.results[0][0].transcript
-      setInput(transcript)
+    const langMap = {
+      'Hindi': 'hi-IN',
+      'Kannada': 'kn-IN',
+      'Tamil': 'ta-IN',
+      'Telugu': 'te-IN',
+      'English': 'en-IN'
     }
+    recognition.lang = langMap[user?.language] || 'en-IN'
+    recognition.continuous = true
+    recognition.interimResults = true
+
+    let finalTranscript = ''
+
+    recognition.onresult = (event) => {
+      let interimTranscript = ''
+      for (let i = event.resultIndex; i < event.results.length; ++i) {
+        if (event.results[i].isFinal) {
+          finalTranscript += event.results[i][0].transcript + ' '
+        } else {
+          interimTranscript += event.results[i][0].transcript
+        }
+      }
+      setInput((finalTranscript + interimTranscript).trim())
+    }
+
     recognition.onend = () => setIsListening(false)
     recognition.onerror = () => setIsListening(false)
 
@@ -223,7 +321,45 @@ export default function AIAssistant() {
         )}
 
         {/* Input */}
-        <div className="bg-white border-t border-gray-100 px-6 py-4">
+        <div className="bg-white border-t border-gray-100 px-6 py-4 relative">
+          <AnimatePresence>
+            {isListening && (
+              <motion.div
+                initial={{ opacity: 0, y: 15, scale: 0.98 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: 15, scale: 0.98 }}
+                className="mb-4 p-4 bg-[#EEF3E8] border border-[#DDE8DC] rounded-2xl flex items-center justify-between shadow-xs relative overflow-hidden"
+              >
+                {/* Subtle gradient glow overlay */}
+                <div className="absolute inset-0 bg-gradient-to-r from-green-500/5 to-emerald-500/5 pointer-events-none" />
+                
+                <div className="flex items-center gap-3.5 relative z-10">
+                  <div className="relative w-9 h-9 rounded-full bg-gradient-to-br from-green-600 to-emerald-500 flex items-center justify-center shadow-md shadow-green-600/20">
+                    <span className="absolute inset-0 rounded-full bg-green-500/30 animate-ping" />
+                    <Mic className="w-4 h-4 text-white" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <span className="text-[9px] font-black tracking-widest text-[#2D6A47] uppercase block">
+                      Active Voice Telemetry
+                    </span>
+                    <p className="text-xs text-[#111D14] font-semibold italic mt-0.5 max-w-[240px] sm:max-w-md truncate">
+                      {input || 'Listening for your voice...'}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Simulated bouncing frequency wave */}
+                <div className="flex gap-1 items-end h-6 pr-2 relative z-10 flex-shrink-0">
+                  <span className="w-0.5 h-3 bg-green-600 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }} />
+                  <span className="w-0.5 h-5 bg-green-500 rounded-full animate-bounce" style={{ animationDelay: '0.3s' }} />
+                  <span className="w-0.5 h-4 bg-emerald-600 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }} />
+                  <span className="w-0.5 h-6 bg-green-600 rounded-full animate-bounce" style={{ animationDelay: '0.4s' }} />
+                  <span className="w-0.5 h-3 bg-emerald-500 rounded-full animate-bounce" style={{ animationDelay: '0s' }} />
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
           <div className="flex items-end gap-3">
             <div className="flex-1 bg-gray-50 border border-gray-200 rounded-2xl flex items-end gap-2 px-4 py-3 focus-within:border-green-400 focus-within:bg-white transition-all">
               <textarea
@@ -249,12 +385,6 @@ export default function AIAssistant() {
               <Send className="w-5 h-5" />
             </motion.button>
           </div>
-          {isListening && (
-            <p className="text-xs text-red-500 mt-2 flex items-center gap-1.5">
-              <span className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />
-              Listening... speak now
-            </p>
-          )}
         </div>
       </div>
 
