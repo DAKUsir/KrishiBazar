@@ -11,6 +11,7 @@ COPY package.json ./
 COPY frontend/package.json frontend/
 COPY backend/package.json backend/
 RUN npm run install:all
+RUN cd backend && npm install @huggingface/inference
 
 # Copy the entire project
 COPY . .
