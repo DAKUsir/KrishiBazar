@@ -37,13 +37,3 @@ services:
       - key: AI_SERVICE_URL
         sync: false # Set to your AI Service Render URL (e.g. https://krishi-bazar-ai-service.onrender.com)
 
-  # 3. Vite Frontend Static Site
-  - type: web
-    name: krishi-bazar-frontend
-    env: static
-    buildCommand: "npm install && npm run build"
-    staticPublishPath: "./dist"
-    rootDir: frontend
-    envVars:
-      - key: VITE_API_URL
-        sync: false # Set to your Backend API Render URL (e.g. https://krishi-bazar-backend.onrender.com)
