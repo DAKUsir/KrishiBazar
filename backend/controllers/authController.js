@@ -15,12 +15,11 @@ const googleAuth = (req, res, next) => {
 const googleCallback = async (req, res) => {
   try {
     const token = generateToken(req.user._id);
-    const clientUrl = process.env.CLIENT_URL || 'http://localhost:5173';
 
-    // Redirect to frontend with token
-    res.redirect(`${clientUrl}/auth/callback?token=${token}&onboarded=${req.user.isOnboarded}`);
+    // Relative redirect to the frontend route on the same domain
+    res.redirect(`/auth/callback?token=${token}&onboarded=${req.user.isOnboarded}`);
   } catch (error) {
-    res.redirect(`${process.env.CLIENT_URL}/auth?error=oauth_failed`);
+    res.redirect(`/auth?error=oauth_failed`);
   }
 };
 
