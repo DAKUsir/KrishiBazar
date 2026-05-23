@@ -11,16 +11,25 @@ const pageTitles = {
   '/onboarding': { title: 'Setup Your Farm', subtitle: 'Tell us about your farm' },
 }
 
-export default function Navbar() {
+export default function Navbar({ onMenuClick }) {
   const { user } = useAuth()
   const location = useLocation()
   const page = pageTitles[location.pathname] || { title: 'Krishi Bazar', subtitle: '' }
 
   return (
-    <header className="bg-white border-b border-gray-100 px-6 py-4 flex items-center justify-between shadow-sm">
-      <div>
-        <h2 className="text-xl font-bold text-gray-900 font-display">{page.title}</h2>
-        <p className="text-sm text-gray-500">{page.subtitle}</p>
+    <header className="bg-white border-b border-gray-100 px-6 py-4 flex items-center justify-between shadow-sm select-none">
+      <div className="flex items-center gap-3">
+        <button
+          onClick={onMenuClick}
+          className="md:hidden p-2 -ml-2 rounded-xl hover:bg-gray-100 text-gray-600 transition-colors"
+          title="Open Menu"
+        >
+          <Menu className="w-5.5 h-5.5" />
+        </button>
+        <div>
+          <h2 className="text-lg md:text-xl font-bold text-gray-900 font-display leading-tight">{page.title}</h2>
+          <p className="text-xs md:text-sm text-gray-500 leading-tight">{page.subtitle}</p>
+        </div>
       </div>
 
       <div className="flex items-center gap-4">

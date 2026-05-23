@@ -31,7 +31,7 @@ const navItems = [
   { to: '/assistant', icon: Bot, label: 'Krishi AI', description: 'AI assistant' },
 ]
 
-export default function Sidebar() {
+export default function Sidebar({ isOpen, onClose }) {
   const { user, logout, updateUser } = useAuth()
   const navigate = useNavigate()
   const { t } = useTranslation()
@@ -110,15 +110,21 @@ export default function Sidebar() {
 
   return (
     <>
-      <motion.aside
-        initial={{ x: -280 }}
-        animate={{ x: 0 }}
-        transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-        className="w-72 bg-[#1A3D2B] flex flex-col shadow-2xl relative z-10 select-none border-r border-[#2E6B47]/20"
+      {/* Mobile Sidebar Backdrop */}
+      {isOpen && (
+        <div
+          className="fixed inset-0 bg-black/60 backdrop-blur-xs z-40 md:hidden"
+          onClick={onClose}
+        />
+      )}
+
+      <aside
+        className={`fixed md:relative inset-y-0 left-0 w-72 bg-[#1A3D2B] flex flex-col shadow-2xl z-50 select-none border-r border-[#2E6B47]/20 transition-transform duration-300 md:translate-x-0
+          ${isOpen ? 'translate-x-0' : '-translate-x-full'}`}
         style={grainStyle}
       >
         {/* Logo */}
-        <div className="p-6 border-b border-[#2E6B47]/20">
+        <div className="p-6 border-b border-[#2E6B47]/20 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-white/5 rounded-xl flex items-center justify-center border border-white/10">
               <WheatLogo />
@@ -128,6 +134,13 @@ export default function Sidebar() {
               <p className="text-[#6B8070] text-[10px] font-bold tracking-wider uppercase mt-1">{t('Smart Agriculture')}</p>
             </div>
           </div>
+          <button
+            onClick={onClose}
+            className="md:hidden p-1.5 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 text-white transition-colors"
+            title="Close Menu"
+          >
+            <X className="w-4.5 h-4.5" />
+          </button>
         </div>
 
         {/* User info - click to edit profile */}
@@ -202,7 +215,7 @@ export default function Sidebar() {
             <span>{t('Sign Out')}</span>
           </button>
         </div>
-      </motion.aside>
+      </aside>
 
       {/* Edit Profile Modal */}
       <AnimatePresence>
