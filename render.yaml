@@ -35,10 +35,7 @@ services:
       - key: GROQ_API_KEY
         sync: false
       - key: AI_SERVICE_URL
-        fromService:
-          type: web
-          name: krishi-bazar-ai-service
-          property: url
+        sync: false # Set to your AI Service Render URL (e.g. https://krishi-bazar-ai-service.onrender.com)
 
   # 3. Vite Frontend Static Site
   - type: web
@@ -49,7 +46,4 @@ services:
     rootDir: frontend
     envVars:
       - key: VITE_API_URL
-        fromService:
-          type: web
-          name: krishi-bazar-backend
-          property: url
+        sync: false # Set to your Backend API Render URL (e.g. https://krishi-bazar-backend.onrender.com)
