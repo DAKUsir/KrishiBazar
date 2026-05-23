@@ -188,7 +188,7 @@ YOUR ROLE:
 
   const toggleVoiceInput = () => {
     if (!('webkitSpeechRecognition' in window || 'SpeechRecognition' in window)) {
-      alert('Voice input not supported in your browser')
+      alert('Voice input not supported in your browser. Note: Browsers block microphone access on non-secure (HTTP) connections. Please test on "localhost" or use an HTTPS connection.')
       return
     }
 
@@ -227,7 +227,15 @@ YOUR ROLE:
     }
 
     recognition.onend = () => setIsListening(false)
-    recognition.onerror = () => setIsListening(false)
+    recognition.onerror = (e) => {
+      console.error('Speech recognition error:', e.error)
+      setIsListening(false)
+      if (e.error === 'not-allowed') {
+        alert('Microphone access blocked. Modern browsers block mic access on non-secure (HTTP) networks unless loading via "localhost". Please grant permission or test directly on your host computer.')
+      } else if (e.error !== 'no-speech') {
+        alert(`Speech recognition error: ${e.error}`)
+      }
+    }
 
     recognition.start()
     recognitionRef.current = recognition
