@@ -1,0 +1,55 @@
+services:
+  # 1. Python AI Service (FastAPI)
+  - type: web
+    name: krishi-bazar-ai-service
+    env: python
+    buildCommand: "pip install -r requirements.txt"
+    startCommand: "uvicorn main:app --host 0.0.0.0 --port $PORT"
+    rootDir: ai-service
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.10.0
+
+  # 2. Node.js Backend API
+  - type: web
+    name: krishi-bazar-backend
+    env: node
+    buildCommand: "npm install"
+    startCommand: "npm start"
+    rootDir: backend
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 5000
+      - key: MONGO_URI
+        sync: false # Set your MongoDB Atlas URI in the Render dashboard
+      - key: JWT_SECRET
+        sync: false
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: GOOGLE_CLIENT_SECRET
+        sync: false
+      - key: HUGGINGFACE_API_KEY
+        sync: false
+      - key: GROQ_API_KEY
+        sync: false
+      - key: AI_SERVICE_URL
+        fromService:
+          type: web
+          name: krishi-bazar-ai-service
+          property: url
+
+  # 3. Vite Frontend Static Site
+  - type: web
+    name: krishi-bazar-frontend
+    env: static
+    buildCommand: "npm install && npm run build"
+    staticPublishPath: "./dist"
+    rootDir: frontend
+    envVars:
+      - key: VITE_API_URL
+        fromService:
+          type: web
+          name: krishi-bazar-backend
+          property: url
