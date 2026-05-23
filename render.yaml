@@ -10,13 +10,13 @@ services:
       - key: PYTHON_VERSION
         value: 3.10.0
 
-  # 2. Node.js Backend API
+  # 2. Node.js Fullstack Web Application
   - type: web
-    name: krishi-bazar-backend
+    name: krishi-bazar-webapp
     env: node
-    buildCommand: "npm install"
-    startCommand: "npm start"
-    rootDir: backend
+    buildCommand: "npm run install:all && npm run build"
+    startCommand: "cd backend && npm start"
+    rootDir: .
     envVars:
       - key: NODE_ENV
         value: production
