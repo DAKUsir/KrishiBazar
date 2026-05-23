@@ -64,15 +64,13 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'OK', service: 'Krishi Bazar API', timestamp: new Date().toISOString() });
 });
 
-// Error handler
-app.use(errorHandler);
+// Serve static frontend
+app.use(express.static(path.join(__dirname, '../frontend/dist')));
+app.get('*', (req, res) => {
+  res.sendFile(path.resolve(__dirname, '../frontend/dist', 'index.html'));
+});
 
-// Serve static frontend in production
-if (process.env.NODE_ENV === 'production') {
-  app.use(express.static(path.join(__dirname, '../frontend/dist')));
-  app.get('*', (req, res) => {
-    res.sendFile(path.resolve(__dirname, '../frontend/dist', 'index.html'));
-  });
-}
+// Error handler (must be last)
+app.use(errorHandler);
 
 module.exports = app;
