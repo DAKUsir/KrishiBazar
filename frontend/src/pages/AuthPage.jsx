@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Leaf, Shield, Zap, AlertTriangle, ChevronDown, Info, Copy, CheckCheck } from 'lucide-react'
@@ -14,8 +14,15 @@ const OAUTH_REDIRECT = 'http://localhost:5000/api/auth/google/callback'
 export default function AuthPage() {
   const [params] = useSearchParams()
   const navigate = useNavigate()
-  const { loginWithToken } = useAuth()
+  const { user, loginWithToken } = useAuth()
   const [showOAuthHelp, setShowOAuthHelp] = useState(params.get('error') === 'oauth_failed')
+
+  // Auto-redirect if user is already logged in (e.g., mobile bypass)
+  useEffect(() => {
+    if (user) {
+      navigate(user.isOnboarded ? '/dashboard' : '/onboarding', { replace: true })
+    }
+  }, [user, navigate])
   const [demoLoading, setDemoLoading] = useState(false)
   const [copied, setCopied] = useState('')
 

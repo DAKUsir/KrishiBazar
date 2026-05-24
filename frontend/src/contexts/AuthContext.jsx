@@ -3,9 +3,10 @@ import api from '../lib/api'
 
 const AuthContext = createContext(null)
 
-// ─── AUTH DISABLED ────────────────────────────────────────────────────────────
-// Set to true to restore full Google OAuth login flow
-const AUTH_ENABLED = false
+// ─── DYNAMIC AUTHENTICATION ───────────────────────────────────────────────────
+// Disables auth (auto-login as demo) for mobile devices, enables full flow for desktop
+const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || window.innerWidth <= 768
+const AUTH_ENABLED = !isMobile
 
 // Demo user shown while auth is disabled
 const DEMO_USER = {
